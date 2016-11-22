@@ -10,10 +10,13 @@ either sit down (if there are empty chairs) or leave the shop (if all chairs are
 thread synchronization problem is to program the barbers and the customers without
 getting into race conditions.
 */
+typedef int semaphore;
 
-int customers,barbers = m;
+semaphore customers,barbers = m;
+semaphore barberChairs = m,waitingChairs = n;
+semaphore mutex;
 int waitingCustomers;
-int barberChairs = m,waitingChairs = n;
+
 void barber();
 void costomer();
 void up();
