@@ -23,7 +23,7 @@ void *barberThread(void* arg){
 		*/
 
         /*Cut hair*/
-        sem_post(&barber);
+    sem_post(&barber);
 
 
     pthread_exit(0);
@@ -32,8 +32,8 @@ void *barberThread(void* arg){
 void *customerThread(void* arg){
     if(sleepingBarber  != 0 ) {
 
-		/* Wake up a barber */ 
-		sem_post(&customer);
+	/* Wake up a barber */ 
+	sem_post(&customer);
     	sem_wait(&barber);
 
     }
