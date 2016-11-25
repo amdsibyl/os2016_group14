@@ -1,5 +1,6 @@
 #include<iostream>
 #include <cstdlib>
+#include <queue>
 #include <thread>
 #include <mutex>
 #include <semaphore.h>
@@ -24,16 +25,23 @@ getting into race conditions.
 /* barber room */
 semaphore customers = 0;
 semaphore barbers = m;
-semaphore barberChairs = m;
-mutex mtx = m;
+queue sleepingBarbers;
+
+mutex mtx;//¿ïÅU«È
 
 /* waiting room */
 semaphore waitingChairs = n;
 int waitingCustomers = 0;
 /*I don't know we should use 'int' or 'semaphore' here*/
 
-
 void barber();
 void costomer();
-void up();
-void down();
+
+void barber(){
+    /*if there is a customer?*/
+    /*y:cut hair / n:sleep*/
+}
+void customer(){
+    /*if there is an available barber?*/
+    /*y:wake him up / n:check if there is a empty waiting seat->y:sit down / n:leave*/
+}
