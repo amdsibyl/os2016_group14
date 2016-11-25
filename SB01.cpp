@@ -35,7 +35,7 @@ int waitingCustomers = 0;
 /*I don't know we should use 'int' or 'semaphore' here*/
 
 void barber();
-void costomer();
+void customer();
 
 void barber(){
     /*if there is a customer?*/
