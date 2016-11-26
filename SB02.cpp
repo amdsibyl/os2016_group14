@@ -48,32 +48,31 @@ private:
     int id;
     bool isBusy = false;
 public:
-    void Barber(int id)
+    Barber(int id)
     {
         this->id = id;
     }
-    void check();
+    void checkAndRun();
     void cutHair()
     {
-        cout<<"Barber " + id + " is busy now!"<<endl;
-        try
-        {
-            sleep(5000);//sleep for 5s
-        }
-        catch(InterruptedException ex) {}
+        cout<<"Barber "<<id<<" is busy now!"<<endl;
+        Sleep(5000);//sleep for 5s
     }
 };
 
-void Barber::check()
+void Barber::checkAndRun()
 {
+    cout<<"Barber check!";
     while(1)
     {
-        customers.down(); // Go to sleep if no customers
+        customers.down(); // Go to sleep if there is no customers
         mutex.down(); // Acquire access to waiting
-        waiting = waiting - 1; // Decrement count of waiting customers
+        //execute a DOWN on mutex before entering critical section
+        waitingCustomers -= 1;
         barbers.up();  // One barber is now ready to cut hair
         mutex.up(); // Release waiting
-        cutHair(); // Noncritical region
+        //execute an UP on mutex when leaving critical section
+        cutHair();
     }
 }
 
@@ -83,39 +82,42 @@ private:
     int id;
     bool isBusy = false;
 public:
-    void Customer(int id)
+    Customer(int id)
     {
         this->id = id;
     }
-    void check();
+    void checkAndRun();
     void getHairCut()
     {
-        cout<<"Customer " + id + " is getting his/her hair cut!"<<endl;
-        try
-        {
-            sleep(5000);//sleep for 5s
-        }
-        catch(InterruptedException ex) {}
+        cout<<"Customer "<<id<<" is getting his/her hair cut!"<<endl;
+        Sleep(5000);//sleep for 5s
     }
 };
 
-void Customer::check()
+void Customer::checkAndRun()
 {
+    cout<<"Customer check!";
     mutex.down(); // Acquire access to waiting
-    if(waiting ‹ CHAIRS)
+    //execute a DOWN on mutex before entering critical section
+
+    if(waitingCustomers < NUM_CHAIRS)
     {
-        waiting = waiting + 1; // Increment count of waiting customers
-        customers.up(); // Wake up barber if needed
+        waitingCustomers += 1;
+        customers.up(); // Wake up a barber (if needed)
         mutex.up(); // Release waiting
+        //execute an UP on mutex when leaving critical section
         barbers.down(); // Go to sleep if number of available barbers is 0
-        get_haircut(); // Noncritical region
+        get_haircut();
     }
     else
     {
-        mutex.up(); // Shop is full do not wait
+        mutex.up(); // Shop is full -> leave
+        //execute an UP on mutex when leaving critical section
     }
 
 }
+
+// the following threads' names need to be modified.
 
 void *barberThread(void*)
 {
@@ -132,7 +134,7 @@ void *barberThread(void*)
     pthread_exit(0);
 }
 
-//threads' names need to be modified.
+
 void *customerThread(void*)
 {
     if(sleepingBarbers  != 0 )
