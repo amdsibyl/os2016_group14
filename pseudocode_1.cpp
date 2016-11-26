@@ -11,12 +11,12 @@ sem_t barber;
 sem_t customer;
 sem_t mutex;
 int freeChair = NUM_CHAIRS;
-int sleepingBarber = NUM_BARBERS;
+int sleepingBarber = 0;
 
 int loopTime = 5;/*For test*/
 
 void *barberThread(void* arg){
-    
+
 		/*
 			if no customer -> go to sleep
 			if have -> pick one
@@ -32,7 +32,7 @@ void *barberThread(void* arg){
 void *customerThread(void* arg){
     if(sleepingBarber  != 0 ) {
 
-	/* Wake up a barber */ 
+	/* Wake up a barber */
 	sem_post(&customer);
     	sem_wait(&barber);
 
