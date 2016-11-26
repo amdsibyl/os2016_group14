@@ -14,19 +14,21 @@ sem_t customer;
 sem_t barber;
 sem_t mutex;
 
-int nextID = 1;
+int nextID = 1;  /* ID for customer */
 
 
-typedef struct chair{
+typedef struct chair{ 
     int cusID;
     int th;
-}Chair;
+}Chair;     /*   A struct of chair which contain tn(this chair is number tn of all chair) and 
+                 cusID (record the ID for the customer who currently has this chair, if nobody has it, then cusID = 0
+            */
 
 Chair waitingChair[NUM_CHAIRS];
-int nextCut = 0;
-int nextSit = 0;
+int nextCut = 0;    /*  Point to the chair which next servered customer sit on  */
+int nextSit = 0;    /*  Point to the chair which will be sit when next customer come */
 
-void showChair(){
+void showChair(){   
     for(int i=0;i<NUM_CHAIRS;i++)
         cout << waitingChair[i].cusID << " ";
     cout << endl;
@@ -46,14 +48,12 @@ void *barberThread(void* arg){
     while(true){
         sem_wait(&customer); // if customer = 0, then sleep
         /* Has customer in waiting chair*/
-        //cout << "NextCut = " << nextCut << "\tNextSit = " << nextSit << "\t";
-        //showChair();
         cutting(*pID, waitingChair[nextCut]); //pick the customer which counter point
     }
 }
 void *customerThread(void *arg){
     int *pID = (int*)arg;
-    if(freeChair ==0 )  {
+    if(freeChair ==0 )  { 
         cout << "(" << *pID << ") No chair !I'm leaving!" << endl;
         pthread_exit(0);
     }
@@ -81,18 +81,18 @@ void createCustomer(){
 }
 
 int main(){
-    sem_init(&customer, 0, 0);
+    sem_init(&customer, 0, 0);        // at first, no customer
     sem_init(&barber, 0, NUM_BARBERS);
     sem_init(&mutex, 0, 1);
     
     pthread_t bar[NUM_BARBERS];
-    int barID[NUM_BARBERS];
+    int barID[NUM_BARBERS];     
 
-    for(int i=0; i<NUM_CHAIRS; i++)
-        waitingChair[i].th = i;
-    for(int i=0; i<NUM_BARBERS; i++){
-        barID[i] = i+1;
-        pthread_create(&bar[i], NULL, barberThread, (void*)&barID[i]);
+    for(int i=0; i<NUM_CHAIRS; i++)  // fill the number of tn of all waiting chair
+        waitingChair[i].th = i; 
+    for(int i=0; i<NUM_BARBERS; i++){ 
+        barID[i] = i+1;              // fill the barID
+        pthread_create(&bar[i], NULL, barberThread, (void*)&barID[i]);  // create all barber thread
     }
 
     createCustomer();
