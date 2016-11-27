@@ -31,12 +31,12 @@ sem_t mutex;/*Mutex used for mutual exclusion*/
 struct customerData
 {
     int cusID;
-    bool hasFinishedCutting = false;
+    bool hasFinishedCutting;
 };
 
 typedef struct chair
 {
-    struct customerData data;
+    struct customerData data;/*Data of the customer who sits on the chair*/
     int customerID;/*Number of the customer who sits on the chair*/
     /*If nobody sits on it, then customerID = 0*/
     int seqNumber;/*The chair's sequence number of all chairs*/
@@ -72,7 +72,7 @@ void cutHair(int barberID, Chair wChair)
     nextCut = (nextCut+1) % NUM_CHAIRS;
 
     struct customerData nowCus = waitingChairs[wChair.seqNumber].data;
-    waitingChairs[wChair.seqNumber].customerID = 0;
+    waitingChairs[wChair.seqNumber].customerID = 0; /*If nobody sits on it, then customerID = 0*/
     availableChairs++;
     usleep(5000000);//sleep for 5s
     //for(long i=0; i<100000000; i++);
@@ -80,13 +80,16 @@ void cutHair(int barberID, Chair wChair)
     nowCus.hasFinishedCutting = true;
 }
 
-void getHairCut(struct customerData nowCus)
+/*bool is always false->why?*/
+void getHairCut(struct customerData *nowCus)
 {
     //usleep(5000000);
     //usleep(100);
-    cout<<"Customer No."<<nowCus.cusID<<" is getting his/her hair cut."<<endl;
+    cout<<"Customer No."<<nowCus->cusID<<" is getting his/her hair cut."<<endl;
     //usleep(499900);
-    while(!nowCus.hasFinishedCutting);
+    //cout<<nowCus->hasFinishedCutting<<"wwwyyy";
+    while(!nowCus->hasFinishedCutting);
+    //cout<<nowCus->hasFinishedCutting<<"yyyyyyy";
 
 }
 
@@ -128,6 +131,7 @@ void *customerThread(void* arg)
     //cout << "Customer No." << *pID << " is sitting on chair " << nextSit << "." << endl;
     cout << "Customer No." << data->cusID << " is sitting on chair " << nextSit << "." << endl;
     waitingChairs[nextSit].customerID = data->cusID;
+    waitingChairs[nextSit].data = *data;
     //waitingChairs[nextSit].customerID = *pID;
     nextSit = (nextSit+1) % NUM_CHAIRS;
     availableChairs--;
@@ -138,7 +142,7 @@ void *customerThread(void* arg)
     //execute an UP on mutex when leaving critical section
 
     sem_wait(&barbers); // Go to sleep if number of available barbers is 0
-    getHairCut(*data);
+    getHairCut(data);
 
 }
 
@@ -153,6 +157,7 @@ void createCustomers()
     for(int i=0; i<randomNum; i++)
     {
         cusData[i].cusID = i+1;
+        cusData[i].hasFinishedCutting = false;
         cout <<endl<< "Create Customer No."<< cusData[i].cusID <<"."<< endl;
         //pthread_create(&cus[i], NULL, customerThread, (void*)&customerID[i]);
         pthread_create(&cus[i], NULL, customerThread, (void*)&cusData[i]);
