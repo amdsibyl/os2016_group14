@@ -67,13 +67,16 @@ void cutHair(int barberID, Chair wChair)
     waitingChairs[wChair.seqNumber].customerID = 0;
     availableChairs++;
     usleep(5000000);//sleep for 5s
+    //for(long i=0; i<100000000; i++);
     cout << "Barber " << barberID <<" just finish cutting Customer No." << wChair.customerID << "!" <<endl<<endl;;
 }
 
 void getHairCut(int id)
 {
-    usleep(5000000);
+    //usleep(5000000);
+    usleep(100);
     cout<<"Customer No."<<id<<" is getting his/her hair cut."<<endl;
+    usleep(499900);
 }
 
 void *barberThread(void* arg)
@@ -85,14 +88,12 @@ void *barberThread(void* arg)
         sem_wait(&customers); // Try to acquire a customer.
         //Go to sleep if no customers
 
-
         sem_wait(&mutex); // Acquire access to waiting
         //When a barber is waken -> wants to modify # of available chairs
 
         sem_post(&barbers);  // The barber is now ready to cut hair
         sem_post(&mutex); // Release waiting
         //don't need to lock on the chair anymore
-
 
         cutHair(*pID, waitingChairs[nextCut]); //pick the customer which counter point
     }
@@ -101,15 +102,15 @@ void *barberThread(void* arg)
 void *customerThread(void* arg)
 {
     int *pID = (int*)arg;
+    sem_wait(&mutex); // Acquire access to waiting
+    //execute a DOWN on mutex before entering critical section
+
     if( availableChairs == 0 )
     {
         cout << "There is no available chair. Customer No." << *pID << " is leaving!" << endl;
         sem_post(&mutex);
         pthread_exit(0);
     }
-
-    sem_wait(&mutex); // Acquire access to waiting
-    //execute a DOWN on mutex before entering critical section
 
     cout << "Customer No." << *pID << " is sitting on chair " << nextSit << "." << endl;
     waitingChairs[nextSit].customerID = *pID;
@@ -128,7 +129,7 @@ void *customerThread(void* arg)
 
 void createCustomers()
 {
-    int randomNum = 10;  /* Test */
+    int randomNum = 10;
 
     pthread_t cus[randomNum];
     int customerID[randomNum];
