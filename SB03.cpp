@@ -1,8 +1,9 @@
 #include <iostream>
 #include <semaphore.h>
 #include <pthread.h>
-#include <windows.h>
+//#include <windows.h>
 #include <unistd.h>
+#include <cstdlib>
 
 #define NUM_BARBERS 3
 #define NUM_CHAIRS 5
@@ -23,14 +24,10 @@ using namespace std;
 */
 
 /*Shared data*/
-/*Number of barbers waiting for customers*/
-sem_t barbers;
 
-/*Number of customers waiting for service*/
-sem_t customers;
-
-/*Mutex used for mutual exclusion*/
-sem_t mutex;
+sem_t barbers;/*Number of barbers waiting for customers*/
+sem_t customers;/*Number of customers waiting for service*/
+sem_t mutex;/*Mutex used for mutual exclusion*/
 
 
 typedef struct chair
@@ -57,6 +54,7 @@ int nextSit = 0;    /*  Point to the chair which will be sat when next customer 
 
 void showWhoSitOnChair()
 {
+    cout<<"Waiting Chairs:";
     for(int i=0; i<NUM_CHAIRS; i++)
         cout << waitingChairs[i].customerID << " ";
     cout << endl;
@@ -64,22 +62,27 @@ void showWhoSitOnChair()
 
 void cutHair(int barberID, Chair wChair)
 {
+    cout << "Barber " << barberID <<" is cutting Customer No." << wChair.customerID << "'s hair !"<<endl;
+    //cout << "(At chair No." << wChair.seqNumber << ")" << endl;
     nextCut = (nextCut+1) % NUM_CHAIRS;
     waitingChairs[wChair.seqNumber].customerID = 0;
     availableChairs++;
-    cout << "Barber " << barberID <<" is cutting Customer No." << wChair.customerID << "'s hair !(from chair " << wChair.seqNumber << ")" << endl;
-    Sleep(5000);//sleep for 5s
+    usleep(5000000);//sleep for 5s
+    //Sleep(1000);//sleep for 1s
     //for(long i=0; i<100000000; i++); /* Test */
     cout << "Barber " << barberID <<" just finish cutting Customer No." << wChair.customerID << "!" <<endl<<endl;;
 }
 
 void getHairCut(int id)
 {
-    cout<<"Customer No."<<id<<" is getting his/her hair cut."<<endl;
-    Sleep(5000);//sleep for 5s
+    usleep(5000000);
+    //usleep(100);
+    //Sleep(1);
+    //cout<<"Customer No."<<id<<" is getting his/her hair cut."<<endl;
+    //usleep(499900);
+    //Sleep(999);
 }
 
-/*Barbers' thread*/
 void *barberThread(void* arg)
 {
     int *pID = (int*)arg;
@@ -89,6 +92,7 @@ void *barberThread(void* arg)
         sem_wait(&customers); // Try to acquire a customer.
         //Go to sleep if no customers
 
+
         sem_wait(&mutex); // Acquire access to waiting
         //When a barber is waken -> wants to modify # of available chairs
 
@@ -96,11 +100,11 @@ void *barberThread(void* arg)
         sem_post(&mutex); // Release waiting
         //don't need to lock on the chair anymore
 
+
         cutHair(*pID, waitingChairs[nextCut]); //pick the customer which counter point
     }
 }
 
-/*Customers' Thread*/
 void *customerThread(void* arg)
 {
     int *pID = (int*)arg;
@@ -108,7 +112,7 @@ void *customerThread(void* arg)
     {
         cout << "There is no available chair. Customer No." << *pID << " is leaving!" << endl;
         sem_post(&mutex);
-        //pthread_exit(0);
+        pthread_exit(0);
     }
 
     sem_wait(&mutex); // Acquire access to waiting
@@ -126,24 +130,23 @@ void *customerThread(void* arg)
 
     sem_wait(&barbers); // Go to sleep if number of available barbers is 0
     getHairCut(*pID);
+
 }
 
-
-void createCustomer()
+void createCustomers()
 {
-    int loopTime = 10;  /* Test */
-    int cusID[loopTime];
-    pthread_t cus[loopTime];
-    for(int i=0; i<loopTime; i++)
+    int randomNum = 10;  /* Test */
+
+    pthread_t cus[randomNum];
+    int customerID[randomNum];
+
+    for(int i=0; i<randomNum; i++)
     {
-        cusID[i] = i+1;
-        cout << "Create Customer "<< cusID[i] << endl<< endl;
-        pthread_create(&cus[i], NULL, customerThread, (void*)&cusID[i]);
-
-        Sleep(10000);
-        //usleep(100000);  /* Test */
+        customerID[i] = i+1;
+        cout << "Create Customer No."<< customerID[i] <<"."<<endl<< endl;
+        pthread_create(&cus[i], NULL, customerThread, (void*)&customerID[i]);
+        usleep(100000);
     }
-
 }
 
 int main()
@@ -164,7 +167,7 @@ int main()
         pthread_create(&bar[i], NULL, barberThread, (void*)&barberID[i]);  // create all barber thread
     }
 
-    createCustomer();
+    createCustomers();
 
     for(int i=0; i<NUM_BARBERS; i++)
         pthread_join(bar[i], NULL);

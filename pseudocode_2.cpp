@@ -58,11 +58,11 @@ void *customerThread(void *arg){
         pthread_exit(0);
     }
     sem_wait(&mutex);
-        cout << "Customer No." << *pID << " sit on chair : " << nextSit << "\t";
-        waitingChair[nextSit].cusID = *pID;
-        nextSit = (nextSit+1) % NUM_CHAIRS;
-        freeChair --;
-        showChair();
+    cout << "Customer No." << *pID << " sit on chair : " << nextSit << "\t";
+    waitingChair[nextSit].cusID = *pID;
+    nextSit = (nextSit+1) % NUM_CHAIRS;
+    freeChair --;
+    showChair();
     sem_post(&mutex);
     sem_post(&customer);
 }
