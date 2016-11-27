@@ -1,7 +1,6 @@
 #include <iostream>
 #include <semaphore.h>
 #include <pthread.h>
-//#include <windows.h>
 #include <unistd.h>
 #include <cstdlib>
 
@@ -68,19 +67,13 @@ void cutHair(int barberID, Chair wChair)
     waitingChairs[wChair.seqNumber].customerID = 0;
     availableChairs++;
     usleep(5000000);//sleep for 5s
-    //Sleep(1000);//sleep for 1s
-    //for(long i=0; i<100000000; i++); /* Test */
     cout << "Barber " << barberID <<" just finish cutting Customer No." << wChair.customerID << "!" <<endl<<endl;;
 }
 
 void getHairCut(int id)
 {
     usleep(5000000);
-    //usleep(100);
-    //Sleep(1);
-    //cout<<"Customer No."<<id<<" is getting his/her hair cut."<<endl;
-    //usleep(499900);
-    //Sleep(999);
+    cout<<"Customer No."<<id<<" is getting his/her hair cut."<<endl;
 }
 
 void *barberThread(void* arg)
@@ -143,7 +136,7 @@ void createCustomers()
     for(int i=0; i<randomNum; i++)
     {
         customerID[i] = i+1;
-        cout << "Create Customer No."<< customerID[i] <<"."<<endl<< endl;
+        cout <<endl<< "Create Customer No."<< customerID[i] <<"."<< endl;
         pthread_create(&cus[i], NULL, customerThread, (void*)&customerID[i]);
         usleep(100000);
     }
