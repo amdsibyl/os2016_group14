@@ -2,6 +2,7 @@
 #include <semaphore.h>
 #include <pthread.h>
 #include <windows.h>
+#include <unistd.h>
 
 #define NUM_BARBERS 3
 #define NUM_CHAIRS 5
@@ -61,25 +62,26 @@ void showWhoSitOnChair()
     cout << endl;
 }
 
-
-
-class Barber
+void cutHair(int barberID, Chair wChair)
 {
-private:
-    int id;
-    bool isBusy = false;
-public:
-    Barber(int id)
-    {
-        this->id = id;
-    }
-    void *checkAndRun(void*);
-    void cutHair(int barberID, Chair wChair);
-};
+    nextCut = (nextCut+1) % NUM_CHAIRS;
+    waitingChairs[wChair.seqNumber].customerID = 0;
+    availableChairs++;
+    cout << "Barber " << barberID <<" is cutting Customer No." << wChair.customerID << "'s hair !(from chair " << wChair.seqNumber << ")" << endl;
+    Sleep(5000);//sleep for 5s
+    //for(long i=0; i<100000000; i++); /* Test */
+    cout << "Barber " << barberID <<" just finish cutting Customer No." << wChair.customerID << "!" <<endl<<endl;;
+}
 
-void Barber::*checkAndRun(void* arg)
+void getHairCut(int id)
 {
-    cout<<"Barber check!";
+    cout<<"Customer No."<<id<<" is getting his/her hair cut."<<endl;
+    Sleep(5000);//sleep for 5s
+}
+
+/*Barbers' thread*/
+void *barberThread(void* arg)
+{
     int *pID = (int*)arg;
     cout << "This is Barber No." << *pID << endl;
     while(true)
@@ -98,88 +100,48 @@ void Barber::*checkAndRun(void* arg)
     }
 }
 
-void Barber::cutHair(int barberID, Chair wChair)
+/*Customers' Thread*/
+void *customerThread(void* arg)
 {
-    nextCut = (nextCut+1) % NUM_CHAIRS;
-    waitingChairs[wChair.seqNumber].customerID = 0;
-    availableChairs++;
-    cout << "Barber " << barberID <<" is cutting Customer No." << wChair.customerID << "'s hair !(from chair "
-            << wChair.seqNumber << ")" << endl;
-    Sleep(5000);//sleep for 5s
-    //for(long i=0; i<100000000; i++); /* Test */
-    cout << "Barber " << barberID <<" just finish cutting Customer No." << wChair.customerID << "!" <<endl<<endl;;
-}
-
-
-class Customer
-{
-private:
-    int id;
-    bool isCutting = false;
-public:
-    Customer(int id)
+    int *pID = (int*)arg;
+    if( availableChairs == 0 )
     {
-        this->id = id;
+        cout << "There is no available chair. Customer No." << *pID << " is leaving!" << endl;
+        sem_post(&mutex);
+        //pthread_exit(0);
     }
-    void *checkAndRun(void*);
-    void getHairCut();
-};
 
-void Customer::*checkAndRun(void* arg)
-{
-    cout<<"Customer check!";
-    while(!isCutting)
-    {
-        int *pID = (int*)arg;
-        if( availableChairs == 0 )
-        {
-            cout << "There is no available chair. Customer No." << *pID << " is leaving!" << endl;
-            sem_post(&mutex);
-            //pthread_exit(0);
-        }
+    sem_wait(&mutex); // Acquire access to waiting
+    //execute a DOWN on mutex before entering critical section
 
-        sem_wait(&mutex); // Acquire access to waiting
-        //execute a DOWN on mutex before entering critical section
+    cout << "Customer No." << *pID << " is sitting on chair " << nextSit << "." << endl;
+    waitingChairs[nextSit].customerID = *pID;
+    nextSit = (nextSit+1) % NUM_CHAIRS;
+    availableChairs--;
+    showWhoSitOnChair();
 
-        cout << "Customer No." << *pID << " is sitting on chair " << nextSit << ".\t";
-        waitingChairs[nextSit].customerID = *pID;
-        nextSit = (nextSit+1) % NUM_CHAIRS;
-        availableChairs--;
-        showWhoSitOnChair();
+    sem_post(&customers); // Wake up a barber (if needed)
+    sem_post(&mutex); // Release waiting
+    //execute an UP on mutex when leaving critical section
 
-        sem_post(&customers); // Wake up a barber (if needed)
-        sem_post(&mutex); // Release waiting
-        //execute an UP on mutex when leaving critical section
-
-        sem_wait(&barbers); // Go to sleep if number of available barbers is 0
-        getHairCut();
-    }
+    sem_wait(&barbers); // Go to sleep if number of available barbers is 0
+    getHairCut(*pID);
 }
 
-//?
-void Customer::getHairCut()
-{
-    cout<<"Customer No."<<this->id<<" is getting his/her hair cut."<<endl;
-    Sleep(5000);//sleep for 5s
-}
-
-// the following threads' names need to be modified.
 
 void createCustomer()
 {
-    vector<Customer> randomCustomers;
-
-
     int loopTime = 10;  /* Test */
     int cusID[loopTime];
     pthread_t cus[loopTime];
     for(int i=0; i<loopTime; i++)
     {
         cusID[i] = i+1;
+        cout << "Create Customer "<< cusID[i] << endl<< endl;
         pthread_create(&cus[i], NULL, customerThread, (void*)&cusID[i]);
-        cout << "Create Customer "<< cusID[i] << endl;
 
-        usleep(100000);  /* Test */
+        Sleep(10000);
+        //usleep(100000);  /* Test */
     }
 
 }
