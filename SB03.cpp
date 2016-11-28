@@ -68,9 +68,9 @@ void cutHair(int barberID, Chair wChair)
     availableChairs++;
     usleep(5000000);//sleep for 5s
     //for(long i=0; i<100000000; i++);
-    cout << "Barber " << barberID <<" just finish cutting Customer No." << wChair.customerID << "!" <<endl<<endl;;
+    cout << "Barber " << barberID <<" just finished cutting Customer No." << wChair.customerID << "!" <<endl<<endl;;
 }
-
+/*
 void getHairCut(int id)
 {
     //usleep(5000000);
@@ -78,7 +78,7 @@ void getHairCut(int id)
     cout<<"Customer No."<<id<<" is getting his/her hair cut."<<endl;
     usleep(499900);
 }
-
+*/
 void *barberThread(void* arg)
 {
     int *pID = (int*)arg;
@@ -123,7 +123,7 @@ void *customerThread(void* arg)
     //execute an UP on mutex when leaving critical section
 
     sem_wait(&barbers); // Go to sleep if number of available barbers is 0
-    getHairCut(*pID);
+    //getHairCut(*pID);
 
 }
 
