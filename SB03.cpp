@@ -79,6 +79,10 @@ void getHairCut(int id)
     usleep(499900);
 }
 */
+void getHairCut()
+{
+    usleep(4999000);
+}
 void *barberThread(void* arg)
 {
     int *pID = (int*)arg;
@@ -124,7 +128,7 @@ void *customerThread(void* arg)
 
     sem_wait(&barbers); // Go to sleep if number of available barbers is 0
     //getHairCut(*pID);
-
+    getHairCut();
 }
 
 void createCustomers()
