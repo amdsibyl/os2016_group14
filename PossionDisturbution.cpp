@@ -4,40 +4,53 @@
 
 using namespace std;
 
-int* possionDistribution(int, int, int);
+// "p_d" represent the "poisson_distribution"
+
+/*  This function need 3 parameter,and return the pointer to a int array(the length of array equal to second parameter)
+    1. mean of p_d
+    2. range of p_d (0~range)
+    3. total number of people in this period
+*/
+
+
+int* possionDistribution(float, int, int);
 
 int main()
-{                                               /* "p_d" for "poisson_distribution"*/
-    int *Arr = possionDistribution(5, 10, 100); /*(mean of p_d, range of p_d, num of frequence of a period)*/
+{
+    int num_cus_period = 100;
+    int PD_range = 10; // PD for PossionDistribution
+    int PD_mean = 3;
+
+    int *Arr = possionDistribution(PD_mean, PD_range, num_cus_period);
     int *Arr2 = possionDistribution(50, 100, 50000);
-    for(int i=0; i<10; i++)
+    for(int i=0; i<PD_range; i++)
         cout << Arr[i] << endl;
 }
 
 
-int *possionDistribution(int mean, int range, int num_period){
+int *possionDistribution(float mean, int range, int num_period){
 
-    const int NUM_TIMES = 10000;
-
+    const int NUM_TIMES = num_period;
 
     std::default_random_engine generator;
     std::poisson_distribution<int> distribution(mean);
 
-    int frequence[range] = {0};
+    int *frequenceArray = new int[range];
+    int sum = 0;
 
     for(int i=0; i<NUM_TIMES; i++){
         int number = distribution(generator);
-        if(number < range)frequence[number]++;
+        if(number < range)
+            frequenceArray[number]++;
     }
-    int sum = 0;
+    
+    /* Test  */
     for(int i=0; i<range; i++){
-        frequence[i] = frequence[i] * num_period / NUM_TIMES;
-        cout << i << " : " << frequence[i] <<endl;
-        sum += frequence[i];
+        cout << i << " : " << frequenceArray[i] <<endl;
+        sum += frequenceArray[i];
     }
     cout << "Sum : " << sum << endl << endl;
-    int *frequArr = new int[range];
-    for(int i=0; i<range; i++)
-        frequArr[i] =  frequence[i];
-    return frequArr;
+    /* Test  */
+    
+    return frequenceArray;
 }
