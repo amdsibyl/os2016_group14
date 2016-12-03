@@ -19,7 +19,7 @@ int main()
 {
     int num_cus_period = 100;
     int PD_range = 10; // PD for PossionDistribution
-    int PD_mean = 3;
+    float PD_mean = 3.0;
 
     int *Arr = possionDistribution(PD_mean, PD_range, num_cus_period);
     int *Arr2 = possionDistribution(50, 100, 50000);
