@@ -77,7 +77,10 @@ int *possionDistribution(float mean, int range, int num_period){
 
     int *frequenceArray = new int[range];
     int sum = 0;
-
+    
+    for(int i=0; i<range; i++)
+		frequenceArray[i] = 0;
+    
     for(int i=0; i<NUM_TIMES; i++){
         int number = distribution(generator);
         if(number < range)
