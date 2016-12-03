@@ -31,6 +31,7 @@ void *customerThread(void *);
 int main()
 {
     createCustomers();
+    return 0;
 }
 
 void createCustomers()
