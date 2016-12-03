@@ -42,9 +42,9 @@ void createCustomers()
     pthread_t cus[num_customer];
     int cusTH = 0;      //this is n-th customer. (0 represent the first customer)
     struct customerData cusData[num_customer];
-    
-    int *cusArray = possionDistribution(mean, timeRange, num_customer); //Use p_s create 
-    
+
+    int *cusArray = possionDistribution(mean, timeRange, num_customer); //Use p_s create
+
     for(int i=0; i<timeRange; i++){
         for(int j=0; j<cusArray[i]; j++){
 
@@ -72,15 +72,15 @@ int *possionDistribution(float mean, int range, int num_period){
 
     const int NUM_TIMES = num_period;
 
-    std::default_random_engine generator;
-    std::poisson_distribution<int> distribution(mean);
+    default_random_engine generator;
+    poisson_distribution<int> distribution(mean);
 
     int *frequenceArray = new int[range];
     int sum = 0;
-    
+
     for(int i=0; i<range; i++)
 		frequenceArray[i] = 0;
-    
+
     for(int i=0; i<NUM_TIMES; i++){
         int number = distribution(generator);
         if(number < range)
@@ -100,5 +100,5 @@ int *possionDistribution(float mean, int range, int num_period){
 void *customerThread(void *arg){
     struct customerData *data = (struct customerData*)arg;
     /*Customer's work*/
-    
+
 }
