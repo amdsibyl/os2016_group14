@@ -22,7 +22,7 @@ int main()
     float PD_mean = 3.0;
 
     int *Arr = possionDistribution(PD_mean, PD_range, num_cus_period);
-    int *Arr2 = possionDistribution(50, 100, 50000);
+    //int *Arr2 = possionDistribution(50, 100, 50000);
     for(int i=0; i<PD_range; i++)
         cout << Arr[i] << endl;
 }
