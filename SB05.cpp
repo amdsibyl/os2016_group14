@@ -3,13 +3,14 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <cstdlib>
+#include <random>
 
 #define NUM_BARBERS 3
 #define NUM_CHAIRS 5
 
 using namespace std;
 
-//modified from pseudocode_2.cpp
+/*Combined with SB03.cpp & PoissonDistribution.cpp*/
 
 /*
   * The barber shop has m barbers with m barber chairs,
@@ -23,7 +24,6 @@ using namespace std;
 */
 
 /*Shared data*/
-
 sem_t barbers;/*Number of barbers waiting for customers*/
 sem_t customers;/*Number of customers waiting for service*/
 sem_t mutex;/*Mutex used for mutual exclusion*/
@@ -36,7 +36,6 @@ struct customerData
 
 typedef struct chair
 {
-    struct customerData data;/*Data of the customer who sits on the chair*/
     int customerID;/*Number of the customer who sits on the chair*/
     /*If nobody sits on it, then customerID = 0*/
     int seqNumber;/*The chair's sequence number of all chairs*/
@@ -56,6 +55,7 @@ int nextID = 1;  /* ID for customer */
 int nextCut = 0;    /*  Point to the chair which next served customer sits on  */
 int nextSit = 0;    /*  Point to the chair which will be sat when next customer comes */
 
+
 void showWhoSitOnChair()
 {
     cout<<"Waiting Chairs:";
@@ -64,35 +64,30 @@ void showWhoSitOnChair()
     cout << endl;
 }
 
-
 void cutHair(int barberID, Chair wChair)
 {
     cout << "Barber " << barberID <<" is cutting Customer No." << wChair.customerID << "'s hair !"<<endl;
     //cout << "(At chair No." << wChair.seqNumber << ")" << endl;
     nextCut = (nextCut+1) % NUM_CHAIRS;
-
-    struct customerData nowCus = waitingChairs[wChair.seqNumber].data;
-    waitingChairs[wChair.seqNumber].customerID = 0; /*If nobody sits on it, then customerID = 0*/
+    waitingChairs[wChair.seqNumber].customerID = 0;
     availableChairs++;
     usleep(5000000);//sleep for 5s
     //for(long i=0; i<100000000; i++);
-    cout << "Barber " << barberID <<" just finish cutting Customer No." << wChair.customerID << "!" <<endl<<endl;
-    nowCus.hasFinishedCutting = true;
+    cout << "Barber " << barberID <<" just finished cutting Customer No." << wChair.customerID << "!" <<endl<<endl;;
 }
-
-/*bool is always false->why?*/
-void getHairCut(struct customerData *nowCus)
+/*
+void getHairCut(int id)
 {
     //usleep(5000000);
-    //usleep(100);
-    cout<<"Customer No."<<nowCus->cusID<<" is getting his/her hair cut."<<endl;
-    //usleep(499900);
-    //cout<<nowCus->hasFinishedCutting<<"wwwyyy";
-    while(!nowCus->hasFinishedCutting);
-    //cout<<nowCus->hasFinishedCutting<<"yyyyyyy";
-
+    usleep(100);
+    cout<<"Customer No."<<id<<" is getting his/her hair cut."<<endl;
+    usleep(499900);
 }
-
+*/
+void getHairCut()
+{
+    usleep(4999000);
+}
 void *barberThread(void* arg)
 {
     int *pID = (int*)arg;
@@ -122,17 +117,13 @@ void *customerThread(void* arg)
 
     if( availableChairs == 0 )
     {
-        //cout << "There is no available chair. Customer No." << *pID << " is leaving!" << endl;
         cout << "There is no available chair. Customer No." << data->cusID << " is leaving!" << endl;
         sem_post(&mutex);
         pthread_exit(0);
     }
 
-    //cout << "Customer No." << *pID << " is sitting on chair " << nextSit << "." << endl;
     cout << "Customer No." << data->cusID << " is sitting on chair " << nextSit << "." << endl;
     waitingChairs[nextSit].customerID = data->cusID;
-    waitingChairs[nextSit].data = *data;
-    //waitingChairs[nextSit].customerID = *pID;
     nextSit = (nextSit+1) % NUM_CHAIRS;
     availableChairs--;
     showWhoSitOnChair();
@@ -142,27 +133,90 @@ void *customerThread(void* arg)
     //execute an UP on mutex when leaving critical section
 
     sem_wait(&barbers); // Go to sleep if number of available barbers is 0
-    getHairCut(data);
-
+    //getHairCut(*pID);
+    getHairCut();
 }
+int *possionDistribution(float mean, int range, int num_period){
 
+    const int NUM_TIMES = num_period;
+
+    default_random_engine generator;
+    poisson_distribution<int> distribution(mean);
+
+    int *frequenceArray = new int[range];
+    int sum = 0;
+
+    for(int i=0; i<range; i++)
+		frequenceArray[i] = 0;
+
+    for(int i=0; i<NUM_TIMES; i++){
+        int number = distribution(generator);
+        if(number < range)
+            frequenceArray[number]++;
+    }
+
+    /* Output Result */
+    /*
+    for(int i=0; i<range; i++){
+        cout << i << " : " << frequenceArray[i] <<endl;
+        sum += frequenceArray[i];
+    }
+    cout << "Sum : " << sum << endl << endl;
+    */
+    /* Output Result  */
+
+    return frequenceArray;
+}
+/*
 void createCustomers()
 {
     int randomNum = 10;
 
     pthread_t cus[randomNum];
-    struct customerData cusData[randomNum];
-    //int customerID[randomNum];
+    int customerID[randomNum];
 
     for(int i=0; i<randomNum; i++)
     {
-        cusData[i].cusID = i+1;
-        cusData[i].hasFinishedCutting = false;
-        cout <<endl<< "Create Customer No."<< cusData[i].cusID <<"."<< endl;
-        //pthread_create(&cus[i], NULL, customerThread, (void*)&customerID[i]);
-        pthread_create(&cus[i], NULL, customerThread, (void*)&cusData[i]);
+        customerID[i] = i+1;
+        cout <<endl<< "Create Customer No."<< customerID[i] <<"."<< endl;
+        pthread_create(&cus[i], NULL, customerThread, (void*)&customerID[i]);
         usleep(100000);
     }
+}
+*/
+
+void createCustomers()
+{
+    float mean = 3.0;
+    int num_customer = 10;  //how many customer will be create
+    int timeRange = 10;    //1 period will have how many time unit
+    pthread_t cus[num_customer];
+    int cusTH = 0;      //this is n-th customer. (0 represent the first customer)
+    struct customerData cusData[num_customer];
+
+    int *cusArray = possionDistribution(mean, timeRange, num_customer); //Use p_s create
+
+    for(int i=0; i<timeRange; i++){
+        for(int j=0; j<cusArray[i]; j++){
+
+            cusData[cusTH].cusID = nextID;
+            cusData[cusTH].hasFinishedCutting = false;
+
+            cout <<endl<< "Create Customer No."<< cusData[cusTH].cusID <<".\t(now Time :"<< i << ")"<<endl;
+            pthread_create(&cus[cusTH], NULL, customerThread, (void*)&cusData[cusTH]);
+
+            cusTH ++;
+            nextID ++;
+            usleep(10);     // avoid create earlier but execute thread laterly
+        }
+        usleep(5000000);    // next time unit
+    }
+
+    for(int i=0; i<num_customer; i++){
+
+        pthread_join(cus[i], NULL);
+    }
+
 }
 
 int main()
