@@ -27,6 +27,9 @@ using namespace std;
 sem_t barbers;/*Number of barbers waiting for customers*/
 sem_t customers;/*Number of customers waiting for service*/
 sem_t mutex;/*Mutex used for mutual exclusion*/
+
+sem_t ioMutex;/*Mutex used for input and output*/
+
 /*
 struct customerData
 {
@@ -61,21 +64,29 @@ int nextSit = 0;    /*  Point to the chair which will be sat when next customer 
 
 void showWhoSitOnChair()
 {
+    sem_wait(&ioMutex); // Acquire access to waiting
     cout<<"Waiting Chairs:";
     for(int i=0; i<NUM_CHAIRS; i++)
         cout << waitingChairs[i].customerID << " ";
     cout << endl;
+    sem_post(&ioMutex); // Release waiting
 }
 
 void cutHair(int barberID, Chair wChair)
 {
+    sem_wait(&ioMutex); // Acquire access to waiting
     cout << "Barber " << barberID <<" is cutting Customer No." << wChair.customerID << "'s hair !"<<endl;
     //cout << "(At chair No." << wChair.seqNumber << ")" << endl;
+    sem_post(&ioMutex); // Release waiting
+
     nextCut = (nextCut+1) % NUM_CHAIRS;
     waitingChairs[wChair.seqNumber].customerID = 0;
     availableChairs++;
     usleep(5000000);//sleep for 5s
+
+    sem_wait(&ioMutex); // Acquire access to waiting
     cout << "Barber " << barberID <<" just finished cutting Customer No." << wChair.customerID << "!" <<endl<<endl;;
+    sem_post(&ioMutex); // Release waiting
 }
 /*
 void getHairCut(int id)
@@ -85,6 +96,7 @@ void getHairCut(int id)
     cout<<"Customer No."<<id<<" is getting his/her hair cut."<<endl;
     usleep(499900);
 }
+
 bool getHairCut(struct customerData* *a)
 {
     usleep(4999000);
@@ -99,7 +111,11 @@ void getHairCut(){
 void *barberThread(void* arg)
 {
     int *pID = (int*)arg;
+
+    sem_wait(&ioMutex); // Acquire access to waiting
     cout << "This is Barber No." << *pID << endl;
+    sem_post(&ioMutex); // Release waiting
+
     while(true)
     {
         sem_wait(&customers); // Try to acquire a customer.
@@ -125,12 +141,17 @@ void *customerThread(void* arg)
 
     if( availableChairs == 0 )
     {
+        sem_wait(&ioMutex); // Acquire access to waiting
         cout << "There is no available chair. Customer No." << *pID << " is leaving!" << endl;
+        sem_post(&ioMutex); // Release waiting
+
         sem_post(&mutex);
         pthread_exit(0);
     }
-
+    sem_wait(&ioMutex); // Acquire access to waiting
     cout << "Customer No." << *pID << " is sitting on chair " << nextSit << "." << endl;
+    sem_post(&ioMutex); // Release waiting
+
     waitingChairs[nextSit].customerID = *pID;
     nextSit = (nextSit+1) % NUM_CHAIRS;
     availableChairs--;
@@ -180,8 +201,10 @@ int *possionDistribution(float mean, int range, int num_period){
 void createCustomers()
 {
     int randomNum = 10;
+
     pthread_t cus[randomNum];
     int customerID[randomNum];
+
     for(int i=0; i<randomNum; i++)
     {
         customerID[i] = i+1;
@@ -208,12 +231,17 @@ void createCustomers(int timeRange)
         for(int j=0; j<cusArray[i]; j++){
 
             cusID[cusTH] = nextID;
+
+            sem_wait(&ioMutex); // Acquire access to waiting
             cout <<endl<< "Create Customer No."<< cusID[cusTH] <<"\t(now Time :"<< i << ")"<<endl;
+            sem_post(&ioMutex); // Release waiting
+
             pthread_create(&cus[cusTH], NULL, customerThread, (void*)&cusID[cusTH]);
 
             /*
             cusData[cusTH].cusID = nextID;
             cusData[cusTH].hasFinishedCutting = false;
+
             cout <<endl<< "Create Customer No."<< cusData[cusTH].cusID <<".\t(now Time :"<< i << ")"<<endl;
             pthread_create(&cus[cusTH], NULL, customerThread, (void*)&cusData[cusTH]);
             */
@@ -241,6 +269,7 @@ int main()
     sem_init(&customers, 0, 0); // at first, no customer
     sem_init(&barbers, 0, NUM_BARBERS);
     sem_init(&mutex, 0, 1);
+    sem_init(&ioMutex, 0, 1);
 
     for(int i=0; i<NUM_CHAIRS; i++)  // fill the number of tn of all waiting chair
         waitingChairs[i].seqNumber = i;
