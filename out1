@@ -1,0 +1,136 @@
+ec) that you want to test:5
+Enter number of customers that you want to create:30
+
+Create Customer No.1	(now Time :0)
+Customer No.1 is sitting on chair 0.
+Waiting Chairs:1 0 0 0 0 
+This is Barber No.3
+Barber 3 is cutting Customer No.1's hair !
+This is Barber No.2
+This is Barber No.1
+Barber 3 just finished cutting Customer No.1's hair !
+
+
+Create Customer No.2	(now Time :1)
+Customer No.2 is sitting on chair 1.
+Waiting Chairs:0 2 0 0 0 
+Barber 2 is cutting Customer No.2's hair !
+
+Create Customer No.3	(now Time :1)
+Customer No.3 is sitting on chair 2.
+Waiting Chairs:0 0 3 0 0 
+
+Create Customer No.4	(now Time :1)
+Barber 1 is cutting Customer No.3's hair !
+Customer No.4 is sitting on chair 3.
+Waiting Chairs:0 0 0 4 0 
+Barber 3 is cutting Customer No.4's hair !
+
+Create Customer No.5	(now Time :1)
+Customer No.5 is sitting on chair 4.
+Waiting Chairs:0 0 0 0 5 
+
+Create Customer No.6	(now Time :1)
+Customer No.6 is sitting on chair 0.
+Waiting Chairs:6 0 0 0 5 
+Barber 2 just finished cutting Customer No.2's hair !
+
+Barber 2 is cutting Customer No.5's hair !
+Barber 1 just finished cutting Customer No.3's hair !
+
+Barber 1 is cutting Customer No.6's hair !
+Barber 3 just finished cutting Customer No.4's hair !
+
+
+Create Customer No.7	(now Time :2)
+Customer No.7 is sitting on chair 1.
+Waiting Chairs:0 7 0 0 0 
+Barber 3 is cutting Customer No.7's hair !
+
+Create Customer No.8	(now Time :2)
+Customer No.8 is sitting on chair 2.
+Waiting Chairs:0 0 8 0 0 
+
+Create Customer No.9	(now Time :2)
+Customer No.9 is sitting on chair 3.
+Waiting Chairs:0 0 8 9 0 
+
+Create Customer No.10	(now Time :2)
+Customer No.10 is sitting on chair 4.
+Waiting Chairs:0 0 8 9 10 
+
+Create Customer No.11	(now Time :2)
+Customer No.11 is sitting on chair 0.
+Waiting Chairs:11 0 8 9 10 
+
+Create Customer No.12	(now Time :2)
+Customer No.12 is sitting on chair 1.
+Waiting Chairs:11 12 8 9 10 
+Barber 2 just finished cutting Customer No.5's hair !
+
+Barber 2 is cutting Customer No.8's hair !
+Barber 1 just finished cutting Customer No.6's hair !
+
+Barber 1 is cutting Customer No.9's hair !
+Barber 3 just finished cutting Customer No.7's hair !
+
+Barber 3 is cutting Customer No.10's hair !
+
+Create Customer No.13	(now Time :3)
+Customer No.13 is sitting on chair 2.
+Waiting Chairs:11 12 13 0 0 
+
+Create Customer No.14	(now Time :3)
+Customer No.14 is sitting on chair 3.
+Waiting Chairs:11 12 13 14 0 
+
+Create Customer No.15	(now Time :3)
+Customer No.15 is sitting on chair 4.
+Waiting Chairs:11 12 13 14 15 
+
+Create Customer No.16	(now Time :3)
+There is no available chair. Customer No.16 is leaving!
+
+Create Customer No.17	(now Time :3)
+There is no available chair. Customer No.17 is leaving!
+
+Create Customer No.18	(now Time :3)
+There is no available chair. Customer No.18 is leaving!
+Barber 2 just finished cutting Customer No.8's hair !
+
+Barber 2 is cutting Customer No.11's hair !
+Barber 1 just finished cutting Customer No.9's hair !
+
+Barber 1 is cutting Customer No.12's hair !
+Barber 3 just finished cutting Customer No.10's hair !
+
+Barber 3 is cutting Customer No.13's hair !
+
+Create Customer No.19	(now Time :4)
+Customer No.19 is sitting on chair 0.
+Waiting Chairs:19 0 0 14 15 
+
+Create Customer No.20	(now Time :4)
+Customer No.20 is sitting on chair 1.
+
+Create Customer No.21	(now Time :4)
+Waiting Chairs:19 20 0 14 15 
+
+Create Customer No.22	(now Time :4)
+Customer No.22 is sitting on chair 2.
+
+Create Customer No.23	(now Time :4)
+Waiting Chairs:19 20 22 14 15 
+There is no available chair. Customer No.21 is leaving!
+There is no available chair. Customer No.23 is leaving!
+Barber 2 just finished cutting Customer No.11's hair !
+
+Barber 2 is cutting Customer No.14's hair !
+Barber 1 just finished cutting Customer No.12's hair !
+
+Barber 1 is cutting Customer No.15's hair !
+Barber 3 just finished cutting Customer No.13's hair !
+
+Barber 3 is cutting Customer No.19's hair !
+程式記憶體區段錯誤 (core dumped)
+
