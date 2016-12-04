@@ -89,14 +89,6 @@ void cutHair(int barberID, Chair wChair)
     sem_post(&ioMutex); // Release waiting
 }
 /*
-void getHairCut(int id)
-{
-    //usleep(5000000);
-    usleep(100);
-    cout<<"Customer No."<<id<<" is getting his/her hair cut."<<endl;
-    usleep(499900);
-}
-
 bool getHairCut(struct customerData* *a)
 {
     usleep(4999000);
@@ -215,10 +207,10 @@ void createCustomers()
 }
 */
 
-void createCustomers(int timeRange)
+void createCustomers(int timeRange,int num_customer)
 {
     float mean = 3.0;
-    int num_customer = 10;  //how many customer will be create
+    //int num_customer = 10;  //how many customer will be create
     //int timeRange = 10;    //1 period will have how many time unit
     pthread_t cus[num_customer];
     int cusTH = 0;      //this is n-th customer. (0 represent the first customer)
@@ -262,9 +254,11 @@ void createCustomers(int timeRange)
 
 int main()
 {
-    int n;
-    cout<<"Enter time range (sec) that you want to test:";
-    cin>>n;
+    int timeRange,num_customer;
+    cout<<"Enter the time range (sec) that you want to test:";
+    cin>>timeRange;
+    cout<<"Enter number of customers that you want to create:";
+    cin>>num_customer;
 
     sem_init(&customers, 0, 0); // at first, no customer
     sem_init(&barbers, 0, NUM_BARBERS);
@@ -283,7 +277,7 @@ int main()
         pthread_create(&bar[i], NULL, barberThread, (void*)&barberID[i]);  // create all barber thread
     }
 
-    createCustomers(n);
+    createCustomers(timeRange,num_customer);
 
     for(int i=0; i<NUM_BARBERS; i++)
         pthread_join(bar[i], NULL);
