@@ -27,7 +27,7 @@ using namespace std;
 sem_t barbers;/*Number of barbers waiting for customers*/
 sem_t customers;/*Number of customers waiting for service*/
 sem_t mutex;/*Mutex used for mutual exclusion*/
-
+/*
 struct customerData
 {
     int cusID;
@@ -36,7 +36,7 @@ struct customerData
         this->hasFinishedCutting = true;
     }
 };
-
+*/
 typedef struct chair
 {
     int customerID;/*Number of the customer who sits on the chair*/
@@ -75,7 +75,6 @@ void cutHair(int barberID, Chair wChair)
     waitingChairs[wChair.seqNumber].customerID = 0;
     availableChairs++;
     usleep(5000000);//sleep for 5s
-    //for(long i=0; i<100000000; i++);
     cout << "Barber " << barberID <<" just finished cutting Customer No." << wChair.customerID << "!" <<endl<<endl;;
 }
 /*
@@ -86,13 +85,17 @@ void getHairCut(int id)
     cout<<"Customer No."<<id<<" is getting his/her hair cut."<<endl;
     usleep(499900);
 }
-*/
+
 bool getHairCut(struct customerData* *a)
 {
     usleep(4999000);
     (*a)->setFinish();
     //cout<<":::::::::::"<<(*a)->hasFinishedCutting<<":::::::::::"<<endl;
     return (*a)->hasFinishedCutting;
+}
+*/
+void getHairCut(){
+    usleep(4999000);
 }
 void *barberThread(void* arg)
 {
@@ -116,20 +119,20 @@ void *barberThread(void* arg)
 
 void *customerThread(void* arg)
 {
-    struct customerData *data = (struct customerData*)arg;
-    //int *pID = (int*)arg;
+    //struct customerData *data = (struct customerData*)arg;
+    int *pID = (int*)arg;
     sem_wait(&mutex); // Acquire access to waiting
     //execute a DOWN on mutex before entering critical section
 
     if( availableChairs == 0 )
     {
-        cout << "There is no available chair. Customer No." << data->cusID << " is leaving!" << endl;
+        cout << "There is no available chair. Customer No." << *pID << " is leaving!" << endl;
         sem_post(&mutex);
         pthread_exit(0);
     }
 
-    cout << "Customer No." << data->cusID << " is sitting on chair " << nextSit << "." << endl;
-    waitingChairs[nextSit].customerID = data->cusID;
+    cout << "Customer No." << *pID << " is sitting on chair " << nextSit << "." << endl;
+    waitingChairs[nextSit].customerID = *pID;
     nextSit = (nextSit+1) % NUM_CHAIRS;
     availableChairs--;
     showWhoSitOnChair();
@@ -139,8 +142,8 @@ void *customerThread(void* arg)
     //execute an UP on mutex when leaving critical section
 
     sem_wait(&barbers); // Go to sleep if number of available barbers is 0
-    //getHairCut(*pID);
-    while(!getHairCut(&data));
+    getHairCut();
+    //while(!getHairCut(&data));
 
 }
 int *possionDistribution(float mean, int range, int num_period){
@@ -192,25 +195,32 @@ void createCustomers()
 }
 */
 
-void createCustomers()
+void createCustomers(int timeRange)
 {
     float mean = 3.0;
     int num_customer = 10;  //how many customer will be create
-    int timeRange = 10;    //1 period will have how many time unit
+    //int timeRange = 10;    //1 period will have how many time unit
     pthread_t cus[num_customer];
     int cusTH = 0;      //this is n-th customer. (0 represent the first customer)
-    struct customerData cusData[num_customer];
+    //struct customerData cusData[num_customer];
+    int cusID[num_customer];
 
     int *cusArray = possionDistribution(mean, timeRange, num_customer); //Use p_s create
 
     for(int i=0; i<timeRange; i++){
         for(int j=0; j<cusArray[i]; j++){
 
+            cusID[cusTH] = nextID;
+            cout <<endl<< "Create Customer No."<< cusID[cusTH] <<"\t(now Time :"<< i << ")"<<endl;
+            pthread_create(&cus[cusTH], NULL, customerThread, (void*)&cusID[cusTH]);
+
+            /*
             cusData[cusTH].cusID = nextID;
             cusData[cusTH].hasFinishedCutting = false;
 
             cout <<endl<< "Create Customer No."<< cusData[cusTH].cusID <<".\t(now Time :"<< i << ")"<<endl;
             pthread_create(&cus[cusTH], NULL, customerThread, (void*)&cusData[cusTH]);
+            */
 
             cusTH ++;
             nextID ++;
@@ -228,6 +238,10 @@ void createCustomers()
 
 int main()
 {
+    int n;
+    cout<<"Enter time range (sec) that you want to test:";
+    cin>>n;
+
     sem_init(&customers, 0, 0); // at first, no customer
     sem_init(&barbers, 0, NUM_BARBERS);
     sem_init(&mutex, 0, 1);
@@ -244,7 +258,7 @@ int main()
         pthread_create(&bar[i], NULL, barberThread, (void*)&barberID[i]);  // create all barber thread
     }
 
-    createCustomers();
+    createCustomers(n);
 
     for(int i=0; i<NUM_BARBERS; i++)
         pthread_join(bar[i], NULL);
