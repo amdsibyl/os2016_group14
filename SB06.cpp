@@ -85,7 +85,7 @@ void cutHair(int barberID, Chair wChair)
     usleep(5000000);//sleep for 5s
 
     sem_wait(&ioMutex); // Acquire access to waiting
-    cout << "Barber " << barberID <<" just finished cutting Customer No." << wChair.customerID << "!" <<endl<<endl;;
+    cout << "Barber " << barberID <<" just finished cutting Customer No." << wChair.customerID << "'s hair !" <<endl<<endl;;
     sem_post(&ioMutex); // Release waiting
 }
 /*
