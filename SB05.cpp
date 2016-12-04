@@ -32,6 +32,9 @@ struct customerData
 {
     int cusID;
     bool hasFinishedCutting;
+    void setFinish(){
+        this->hasFinishedCutting = true;
+    }
 };
 
 typedef struct chair
@@ -84,9 +87,12 @@ void getHairCut(int id)
     usleep(499900);
 }
 */
-void getHairCut()
+bool getHairCut(struct customerData* *a)
 {
     usleep(4999000);
+    (*a)->setFinish();
+    //cout<<":::::::::::"<<(*a)->hasFinishedCutting<<":::::::::::"<<endl;
+    return (*a)->hasFinishedCutting;
 }
 void *barberThread(void* arg)
 {
@@ -134,7 +140,8 @@ void *customerThread(void* arg)
 
     sem_wait(&barbers); // Go to sleep if number of available barbers is 0
     //getHairCut(*pID);
-    getHairCut();
+    while(!getHairCut(&data));
+
 }
 int *possionDistribution(float mean, int range, int num_period){
 
