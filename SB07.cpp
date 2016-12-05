@@ -214,6 +214,9 @@ void createCustomers(int timeRange,int num_customer)
     int *cusArray = possionDistribution(mean, timeRange, num_customer); //Use p_s create
 
     for(int i=0; i<timeRange; i++){
+        sem_wait(&ioMutex); // Acquire access to waiting
+        cout<< "*****TIME:" <<i <<endl;
+        sem_post(&ioMutex); // Release waiting
         for(int j=0; j<cusArray[i]; j++){
 /*
             cusID[cusTH] = nextID;
