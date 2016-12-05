@@ -70,20 +70,19 @@ void showWhoSitOnChair()
 void cutHair(int barberID, Chair wChair)
 {
     sem_wait(&ioMutex); // Acquire access to waiting
-    cout << "@ Barber " << barberID <<" is cutting Customer No." << wChair.data->cusID << "'s hair !"<<endl;
+    cout << "(B) Barber " << barberID <<" is cutting Customer No." << wChair.data->cusID << "'s hair !"<<endl;
     cout << "(At chair No." << wChair.seqNumber << ")" << endl;
     sem_post(&ioMutex); // Release waiting
 
-    nextCut = (nextCut+1) % NUM_CHAIRS;
     waitingChairs[wChair.seqNumber].data = nullptr;
-    availableChairs++;
-    usleep(5000000);//sleep for 5s
 
-    wChair.data->hasFinishedCutting = true;
+    for(long long i=0; i<200000000;i++); //Cut hair time
+
     sem_wait(&ioMutex); // Acquire access to waiting
-    cout << "#Barber " << barberID <<" just finished cutting Customer No." << wChair.data->cusID << "'s hair !" <<endl<<endl;;
+    cout << "(B)Barber " << barberID <<" just finished cutting Customer No." << wChair.data->cusID << "'s hair !" <<endl<<endl;;
     sem_post(&ioMutex); // Release waiting
-
+    
+	wChair.data->hasFinishedCutting = true;
     //free wChair
 }
 
@@ -104,25 +103,32 @@ void *barberThread(void* arg)
         //When a barber is waken -> wants to modify # of available chairs
 
         sem_post(&barbers);  // The barber is now ready to cut hair
+
+        int nowCut = nextCut;
+        nextCut = (nextCut+1) % NUM_CHAIRS;
+        availableChairs++;
+
         sem_post(&mutex); // Release waiting
         //don't need to lock on the chair anymore
 
-        cutHair(*pID, waitingChairs[nextCut]); //pick the customer which counter point
+
+
+        cutHair(*pID, waitingChairs[nowCut]); //pick the customer which counter point
 
     }
 }
-/*
-void getHairCut(struct customerData* *a)
+
+void waitHairCut(struct customerData *a)
 {
-    usleep(5500000);
-    (*a)->hasFinishedCutting = true;
+    while(a->hasFinishedCutting == false);
 }
-*/
+
+/*
 void getHairCut()
 {
     usleep(5500000);
 }
-
+*/
 void *customerThread(void* arg)
 {
     struct customerData *data = (struct customerData*)arg;
@@ -156,13 +162,11 @@ void *customerThread(void* arg)
     //execute an UP on mutex when leaving critical section
 
     sem_wait(&barbers); // Go to sleep if number of available barbers is 0
-    getHairCut();
+    waitHairCut(data);
     //getHairCut(&data);
 
-    while(!data->hasFinishedCutting){}
-
     sem_wait(&ioMutex); // Acquire access to waiting
-    cout << "#Customer No." << data->cusID <<" just finished his haircut!"<<endl;
+    cout << "(C)Customer No." << data->cusID <<" just finished his haircut!"<<endl;
     //cout << "#Customer No." << *pID <<" just finished his haircut!"<<endl;;
     sem_post(&ioMutex); // Release waiting
     //free(data);
@@ -189,13 +193,13 @@ int *possionDistribution(float mean, int range, int num_period){
     }
 
     /* Output Result */
-    /*
+	sem_wait(&ioMutex);
     for(int i=0; i<range; i++){
         cout << i << " : " << frequenceArray[i] <<endl;
         sum += frequenceArray[i];
     }
     cout << "Sum : " << sum << endl << endl;
-    */
+	sem_post(&ioMutex);
     /* Output Result  */
 
     return frequenceArray;
@@ -220,14 +224,11 @@ void createCustomers(int timeRange,int num_customer)
         for(int j=0; j<cusArray[i]; j++){
 /*
             cusID[cusTH] = nextID;
-
             sem_wait(&ioMutex); // Acquire access to waiting
             cout <<endl<< "Create Customer No."<< cusID[cusTH] <<"\t(now Time :"<< i << ")"<<endl;
             sem_post(&ioMutex); // Release waiting
-
             pthread_create(&cus[cusTH], NULL, customerThread, (void*)&cusID[cusTH]);
 */
-
             cusData[cusTH].cusID = nextID;
             cusData[cusTH].hasFinishedCutting = false;
 
@@ -241,7 +242,7 @@ void createCustomers(int timeRange,int num_customer)
             nextID ++;
             usleep(10);     // avoid create earlier but execute thread laterly
         }
-        usleep(5000000);    // next time unit
+        sleep(1);    // next time unit
     }
 
     for(int i=0; i<num_customer; i++){
