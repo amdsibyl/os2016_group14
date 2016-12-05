@@ -189,13 +189,13 @@ int *possionDistribution(float mean, int range, int num_period){
     }
 
     /* Output Result */
-    /*
+	sem_wait(&ioMutex);
     for(int i=0; i<range; i++){
         cout << i << " : " << frequenceArray[i] <<endl;
         sum += frequenceArray[i];
     }
     cout << "Sum : " << sum << endl << endl;
-    */
+	sem_post(&ioMutex);
     /* Output Result  */
 
     return frequenceArray;
@@ -215,7 +215,7 @@ void createCustomers(int timeRange,int num_customer)
 
     for(int i=0; i<timeRange; i++){
         sem_wait(&ioMutex); // Acquire access to waiting
-        cout<< "*****TIME:" <<i <<endl;
+        cout<< "*****TIME:" <<i+1 <<endl;
         sem_post(&ioMutex); // Release waiting
         for(int j=0; j<cusArray[i]; j++){
 /*
@@ -232,7 +232,7 @@ void createCustomers(int timeRange,int num_customer)
             cusData[cusTH].hasFinishedCutting = false;
 
             sem_wait(&ioMutex); // Acquire access to waiting
-            cout <<endl<< "Create Customer No."<< cusData[cusTH].cusID <<".\t(now Time :"<< i << ")"<<endl;
+            cout <<endl<< "Create Customer No."<< cusData[cusTH].cusID <<".\t(now Time :"<< i+1 << ")"<<endl;
             sem_post(&ioMutex); // Release waiting
 
             pthread_create(&cus[cusTH], NULL, customerThread, (void*)&cusData[cusTH]);

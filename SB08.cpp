@@ -242,7 +242,7 @@ void createCustomers(int timeRange,int num_customer)
             nextID ++;
             usleep(10);     // avoid create earlier but execute thread laterly
         }
-        sleep(1);    // next time unit
+        usleep(1000000);    // next time unit
     }
 
     for(int i=0; i<num_customer; i++){
