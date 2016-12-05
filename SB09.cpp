@@ -243,7 +243,7 @@ void createCustomers(int timeRange,int num_customer)
         pthread_join(cus[i], NULL);
         //cout<<"////pthread_cus"<<endl;
     }
-    cout<<"////pthread_cus_exit"<<endl;
+    //cout<<"////pthread_cus_exit"<<endl;
 }
 
 int main()
@@ -274,14 +274,14 @@ int main()
 
     createCustomers(timeRange,num_customer);
 
-/*
+    /*
     for(int i=0; i<NUM_BARBERS; i++)
     {
         cout<<"////pthread_bar"<<i<<endl;
         pthread_join(bar[i], NULL);
     }
     cout<<"////pthread_bar_exit"<<endl;
-*/
+    */
 
     cout<<endl<<"All customers finish their haircuts!"<<endl;
     return 0;
