@@ -25,7 +25,6 @@ using namespace std;
 sem_t barbers;/*Number of barbers waiting for customers*/
 sem_t customers;/*Number of customers waiting for service*/
 sem_t mutex;/*Mutex used for mutual exclusion*/
-
 sem_t ioMutex;/*Mutex used for input and output*/
 
 /*
@@ -50,9 +49,6 @@ Chair waitingChairs[NUM_CHAIRS];
 
 /*Number of available waiting chairs*/
 int availableChairs = NUM_CHAIRS;
-
-/*Number of sleeping barbers*/
-int sleepingBarbers = 0;
 
 int nextID = 1;  /* ID for customer */
 
