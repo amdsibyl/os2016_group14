@@ -70,9 +70,8 @@ void showWhoSitOnChair()
 void cutHair(int barberID, Chair wChair)
 {
     sem_wait(&ioMutex); // Acquire access to waiting
-    cout << "#Barber " << barberID <<" is cutting Customer No." << wChair.data->cusID << "'s hair !"<<endl;
+    cout << "@ Barber " << barberID <<" is cutting Customer No." << wChair.data->cusID << "'s hair !"<<endl;
     cout << "(At chair No." << wChair.seqNumber << ")" << endl;
-
     sem_post(&ioMutex); // Release waiting
 
     nextCut = (nextCut+1) % NUM_CHAIRS;
@@ -112,11 +111,16 @@ void *barberThread(void* arg)
 
     }
 }
-
+/*
 void getHairCut(struct customerData* *a)
 {
-    usleep(4999000);
+    usleep(5500000);
     (*a)->hasFinishedCutting = true;
+}
+*/
+void getHairCut()
+{
+    usleep(5500000);
 }
 
 void *customerThread(void* arg)
@@ -152,7 +156,8 @@ void *customerThread(void* arg)
     //execute an UP on mutex when leaving critical section
 
     sem_wait(&barbers); // Go to sleep if number of available barbers is 0
-    getHairCut(&data);
+    getHairCut();
+    //getHairCut(&data);
 
     while(!data->hasFinishedCutting){}
 
@@ -160,8 +165,6 @@ void *customerThread(void* arg)
     cout << "#Customer No." << data->cusID <<" just finished his haircut!"<<endl;
     //cout << "#Customer No." << *pID <<" just finished his haircut!"<<endl;;
     sem_post(&ioMutex); // Release waiting
-
-
     //free(data);
 
 }
@@ -231,7 +234,6 @@ void createCustomers(int timeRange,int num_customer)
 
             pthread_create(&cus[cusTH], NULL, customerThread, (void*)&cusData[cusTH]);
 
-
             cusTH ++;
             nextID ++;
             usleep(10);     // avoid create earlier but execute thread laterly
@@ -242,7 +244,6 @@ void createCustomers(int timeRange,int num_customer)
     for(int i=0; i<num_customer; i++){
         pthread_join(cus[i], NULL);
     }
-
 }
 
 int main()
