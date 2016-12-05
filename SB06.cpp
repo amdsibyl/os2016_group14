@@ -10,8 +10,6 @@
 
 using namespace std;
 
-/*Combined with SB03.cpp & PoissonDistribution.cpp*/
-
 /*
   * The barber shop has m barbers with m barber chairs,
   * and n chairs (m < n) for waiting customers, if any, to sit in.
@@ -83,10 +81,6 @@ void cutHair(int barberID, Chair wChair)
     waitingChairs[wChair.seqNumber].customerID = 0;
     availableChairs++;
     usleep(5000000);//sleep for 5s
-
-    sem_wait(&ioMutex); // Acquire access to waiting
-    cout << "Barber " << barberID <<" just finished cutting Customer No." << wChair.customerID << "'s hair !" <<endl<<endl;;
-    sem_post(&ioMutex); // Release waiting
 }
 /*
 bool getHairCut(struct customerData* *a)
@@ -98,7 +92,7 @@ bool getHairCut(struct customerData* *a)
 }
 */
 void getHairCut(){
-    usleep(4999000);
+    usleep(5000000);
 }
 void *barberThread(void* arg)
 {
@@ -120,7 +114,12 @@ void *barberThread(void* arg)
         sem_post(&mutex); // Release waiting
         //don't need to lock on the chair anymore
 
+        int now = waitingChairs[nextCut].customerID;
         cutHair(*pID, waitingChairs[nextCut]); //pick the customer which counter point
+
+        sem_wait(&ioMutex); // Acquire access to waiting
+        cout << "#Barber " << *pID <<" just finished cutting Customer No." << now << "'s hair !" <<endl<<endl;;
+        sem_post(&ioMutex); // Release waiting
     }
 }
 
@@ -156,6 +155,10 @@ void *customerThread(void* arg)
     sem_wait(&barbers); // Go to sleep if number of available barbers is 0
     getHairCut();
     //while(!getHairCut(&data));
+
+    sem_wait(&ioMutex); // Acquire access to waiting
+    cout << "#Customer No." << *pID <<" just finished his haircut!"<<endl;;
+    sem_post(&ioMutex); // Release waiting
 
 }
 int *possionDistribution(float mean, int range, int num_period){
