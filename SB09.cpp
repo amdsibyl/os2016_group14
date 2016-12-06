@@ -73,6 +73,13 @@ void showWhoSitOnChair()
 
 void cutHair(int barberID, Chair wChair)
 {
+    sem_wait(&cusMutex);
+    totalServedCustomers++;
+    sem_wait(&ioMutex); // Acquire access to waiting
+    cout<<"total:"<<totalServedCustomers<<"/"<<realNum_customer<<endl;
+    sem_post(&ioMutex); // Release waiting
+    sem_post(&cusMutex);
+
     sem_wait(&ioMutex); // Acquire access to waiting
     cout << "(B) Barber " << barberID <<" is cutting Customer No." << wChair.data->cusID << "'s hair !"<<endl;
     //cout << "(At chair No." << wChair.seqNumber << ")" << endl;
@@ -86,12 +93,6 @@ void cutHair(int barberID, Chair wChair)
     cout << "(B)Barber " << barberID <<" just finished cutting Customer No." << wChair.data->cusID << "'s hair !" <<endl<<endl;;
     sem_post(&ioMutex); // Release waiting
 
-    sem_wait(&cusMutex);
-    totalServedCustomers++;
-    sem_wait(&ioMutex); // Acquire access to waiting
-    cout<<"total:"<<totalServedCustomers<<"/"<<realNum_customer<<endl;
-    sem_post(&ioMutex); // Release waiting
-    sem_post(&cusMutex);
 
     wChair.data->hasFinishedCutting = true;
 
@@ -138,7 +139,7 @@ void *customerThread(void* arg)
         sem_post(&ioMutex); // Release waiting
 
         sem_wait(&cusMutex);
-        totalServedCustomers--;
+        realNum_customer--;
         sem_post(&cusMutex);
 
         sem_post(&mutex);
@@ -274,14 +275,14 @@ int main()
 
     createCustomers(timeRange,num_customer);
 
-    /*
+
     for(int i=0; i<NUM_BARBERS; i++)
     {
         cout<<"////pthread_bar"<<i<<endl;
         pthread_join(bar[i], NULL);
     }
     cout<<"////pthread_bar_exit"<<endl;
-    */
+
 
     cout<<endl<<"All customers finish their haircuts!"<<endl;
     return 0;
