@@ -53,6 +53,7 @@ int nextSit = 0;    /*  Point to the chair which will be sat when next customer 
 
 
 /*For poisson distribution*/
+float mean;
 int timeRange; //1 period will have how many time unit
 int num_customer; //number (for poisson distribution) to create customers
 int realNum_customer = 0;
@@ -93,9 +94,7 @@ void cutHair(int barberID, Chair wChair)
     cout << "(B)Barber " << barberID <<" just finished cutting Customer No." << wChair.data->cusID << "'s hair !" <<endl<<endl;;
     sem_post(&ioMutex); // Release waiting
 
-
     wChair.data->hasFinishedCutting = true;
-
 }
 
 void *barberThread(void* arg)
@@ -207,9 +206,8 @@ int *possionDistribution(float mean, int range, int num_period)
     return frequenceArray;
 }
 
-void createCustomers(int timeRange,int num_customer)
+void createCustomers(int timeRange,int num_customer,float mean)
 {
-    float mean = 3.0;
     pthread_t cus[num_customer];
     int cusTH = 0;      //this is n-th customer. (0 represent the first customer)
     struct customerData cusData[num_customer];
@@ -219,7 +217,7 @@ void createCustomers(int timeRange,int num_customer)
     for(int i=0; i<timeRange; i++)
     {
         sem_wait(&ioMutex); // Acquire access to waiting
-        cout<< "*****TIME:" <<i <<endl;
+        cout<<endl<<"*****TIME:"<<i<<endl;
         sem_post(&ioMutex); // Release waiting
         for(int j=0; j<cusArray[i]; j++)
         {
@@ -249,6 +247,8 @@ void createCustomers(int timeRange,int num_customer)
 
 int main()
 {
+    cout<<"Enter mean number (for poisson distribution):";
+    cin>>mean;
     cout<<"Enter the time range (sec) that you want to test:";
     cin>>timeRange;
     cout<<"Enter number (for poisson distribution) to create customers:";
@@ -273,8 +273,7 @@ int main()
         pthread_create(&bar[i], NULL, barberThread, (void*)&barberID[i]);  // create all barber thread
     }
 
-    createCustomers(timeRange,num_customer);
-
+    createCustomers(timeRange,num_customer,mean);
 
     for(int i=0; i<NUM_BARBERS; i++)
     {
