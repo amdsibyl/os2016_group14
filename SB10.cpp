@@ -285,7 +285,7 @@ int main()
         cout << "Fail" << endl;
     }     
 	
-    int value = 0
+    int value = 0;
     sem_getvalue(Mutex, &value);
     cout << "Mutex = "<< value << endl;
     sem_getvalue(barbers, &value);
