@@ -283,12 +283,16 @@ int main()
 
     if( (cusMutex = sem_open("e",O_CREAT,0644 ,1))== SEM_FAILED){
         cout << "Fail" << endl;
-    }
+    }     
+	
+    int value = 0
+    sem_getvalue(Mutex, &value);
+    cout << "Mutex = "<< value << endl;
+    sem_getvalue(barbers, &value);
+    cout << "Barber = "<< value << endl;
+    sem_getvalue(customers, &value);
+    cout << "Customer = "<< value << endl;
 
-    cout << "Mutex = " ;
-    int *pI = new int;
-    sem_getvalue(Mutex, pI);
-    cout << *pI << endl;
 
 
     for(int i=0; i<NUM_CHAIRS; i++)  // fill the number of tn of all waiting chair
