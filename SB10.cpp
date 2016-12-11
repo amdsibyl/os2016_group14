@@ -1,3 +1,4 @@
+#include <fcntl.h>
 #include <iostream>
 #include <semaphore.h>
 #include <pthread.h>
@@ -27,6 +28,7 @@ sem_t *customers;    /*Number of customers waiting for service*/
 sem_t *Mutex;        /*Mutex used for mutual exclusion*/
 sem_t *ioMutex;      /*Mutex used for input and output*/
 sem_t *cusMutex;     /*Mutex used for change totalServedCustomers*/
+
 
 struct customerData
 {
@@ -196,24 +198,28 @@ int *possionDistribution(float mean, int range, int num_period)
     cout << "Sum : " << realNum_customer << endl << endl;
     sem_post(ioMutex);
 
-    /*
-    sem_wait(&ioMutex);
+    cout << "Hi" << endl;
+    sem_wait(ioMutex);
+    cout << "Hi" << endl;
+
     for(int i=0; i<range; i++)
     {
         cout << i << " : " << frequenceArray[i] <<endl;
         realNum_customer += frequenceArray[i];
     }
     cout << "Sum : " << realNum_customer << endl << endl;
-    sem_post(&ioMutex);
-    */
+    sem_post(ioMutex);
+
 
     return frequenceArray;
 }
 
 void createCustomers(int timeRange,int num_customer,float mean)
 {
+
     pthread_t cus[num_customer];
     int cusTH = 0;      //this is n-th customer. (0 represent the first customer)
+
     struct customerData cusData[num_customer];
 
     int *cusArray = possionDistribution(mean, timeRange, num_customer); //Use p_s create
@@ -246,11 +252,13 @@ void createCustomers(int timeRange,int num_customer,float mean)
         pthread_join(cus[i], NULL);
         //cout<<"////pthread_cus"<<endl;
     }
-    //cout<<"////pthread_cus_exit"<<endl;
+
+    cout<<"////pthread_cus_exit"<<endl;
 }
 
 int main()
 {
+
     cout<<"Enter mean number (for poisson distribution):";
     cin>>mean;
     cout<<"Enter the time range (sec) that you want to test:";
@@ -258,11 +266,29 @@ int main()
     cout<<"Enter number (for poisson distribution) to create customers:";
     cin>>num_customer;
 
-    customers = sem_open("customers", O_CREAT, 0); // at first, no customer
-    barbers = sem_open("barbers", O_CREAT, NUM_BARBERS);
-    Mutex = sem_open("Mutex", O_CREAT, 1);
-    ioMutex = sem_open("ioMutex", O_CREAT, 1);
-    cusMutex = sem_open("cusMutex", O_CREAT, 1);
+
+
+    if( (customers = sem_open("a",O_CREAT,0644,1)) == SEM_FAILED){
+        cout << "Fail" << endl;
+    }
+    if( (barbers = sem_open("b",O_CREAT,0644, NUM_BARBERS) )== SEM_FAILED){
+        cout << "Fail" << endl;
+    }
+    if((Mutex = sem_open("c",O_CREAT,0644, 1) )== SEM_FAILED){
+        cout << "Fail" << endl;
+    }
+    if( (ioMutex = sem_open("d",O_CREAT,0644 ,1))==  SEM_FAILED){
+        cout << "Fail" << endl;
+    }
+
+    if( (cusMutex = sem_open("e",O_CREAT,0644 ,1))== SEM_FAILED){
+        cout << "Fail" << endl;
+    }
+
+    cout << "Mutex = " ;
+    int *pI = new int;
+    sem_getvalue(Mutex, pI);
+    cout << *pI << endl;
 
 
     for(int i=0; i<NUM_CHAIRS; i++)  // fill the number of tn of all waiting chair
@@ -279,11 +305,13 @@ int main()
 
     createCustomers(timeRange,num_customer,mean);
 
+
     for(int i=0; i<NUM_BARBERS; i++)
     {
         cout<<"////pthread_bar"<<i<<endl;
         pthread_join(bar[i], NULL);
     }
+
     cout<<"////pthread_bar_exit"<<endl;
 
 	sem_close(customers);
