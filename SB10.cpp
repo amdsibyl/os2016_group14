@@ -1,6 +1,6 @@
 #include <fcntl.h>
 #include <iostream>
-#include <semaphore.h>
+//#include <semaphore.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <cstdlib>
@@ -23,12 +23,24 @@ using namespace std;
 */
 
 /*Shared data*/
-sem_t *barbers;      /*Number of barbers waiting for customers*/
-sem_t *customers;    /*Number of customers waiting for service*/
-sem_t *Mutex;        /*Mutex used for mutual exclusion*/
-sem_t *ioMutex;      /*Mutex used for input and output*/
-sem_t *cusMutex;     /*Mutex used for change totalServedCustomers*/
+//sem_t *barbers;      /*Number of barbers waiting for customers*/
+//sem_t *customers;    /*Number of customers waiting for service*/
+//sem_t *Mutex;        /*Mutex used for mutual exclusion*/
+//sem_t *ioMutex;      /*Mutex used for input and output*/
+//sem_t *cusMutex;     /*Mutex used for change totalServedCustomers*/
+int barbers=NUM_BARBERS,customers=0,Mutex=1,ioMutex=1,cusMutex=1;
 
+
+int sem_wait(int sem){
+	while(sem<=0);
+	sem--;
+	return 0;
+}
+
+int sem_post(int sem){
+	sem++;
+	return 0;
+}
 
 struct customerData
 {
@@ -267,7 +279,7 @@ int main()
     cin>>num_customer;
 
 
-
+/*
     if( (customers = sem_open("a",O_CREAT,0644,1)) == SEM_FAILED){
         cout << "Fail" << endl;
     }
@@ -292,7 +304,7 @@ int main()
     cout << "Barber = "<< value << endl;
     sem_getvalue(customers, &value);
     cout << "Customer = "<< value << endl;
-
+*/
 
 
     for(int i=0; i<NUM_CHAIRS; i++)  // fill the number of tn of all waiting chair
@@ -318,11 +330,13 @@ int main()
 
     cout<<"////pthread_bar_exit"<<endl;
 
+	/*
 	sem_close(customers);
 	sem_close(barbers);
 	sem_close(Mutex);
 	sem_close(ioMutex);
 	sem_close(cusMutex);
+	*/
 
     cout<<endl<<"All customers finish their haircuts!"<<endl;
     return 0;
