@@ -192,17 +192,6 @@ int *possionDistribution(float mean, int range, int num_period)
     cout << "Sum : " << realNum_customer << endl << endl;
     sem_post(&ioMutex);
 
-    /*
-    sem_wait(&ioMutex);
-    for(int i=0; i<range; i++)
-    {
-        cout << i << " : " << frequenceArray[i] <<endl;
-        realNum_customer += frequenceArray[i];
-    }
-    cout << "Sum : " << realNum_customer << endl << endl;
-    sem_post(&ioMutex);
-    */
-
     return frequenceArray;
 }
 

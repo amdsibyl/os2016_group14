@@ -29,26 +29,7 @@ dispatch_semaphore_t customers = dispatch_semaphore_create(0);    /*Number of cu
 dispatch_semaphore_t Mutex = dispatch_semaphore_create(1);        /*Mutex used for mutual exclusion*/
 dispatch_semaphore_t ioMutex = dispatch_semaphore_create(1);      /*Mutex used for input and output*/
 dispatch_semaphore_t cusMutex = dispatch_semaphore_create(1);     /*Mutex used for change totalServedCustomers*/
-//int barbers=NUM_BARBERS,customers=0,Mutex=1,ioMutex=1,cusMutex=1;
-/*
-barbers = dispatch_semaphore_create(NUM_BARBERS);
-customers = dispatch_semaphore_create(0);
-Mutex = dispatch_semaphore_create(1);
-ioMutex = dispatch_semaphore_create(1);
-cusMutex = dispatch_semaphore_create(1);
-*/
-/*
-int dispatch_semaphore_wait(int sem){
-	while(sem<=0);
-	sem--;
-	return 0;
-}
 
-int dispatch_semaphore_signal(int sem){
-	sem++;
-	return 0;
-}
-*/
 struct customerData
 {
     int cusID;
@@ -62,7 +43,6 @@ typedef struct chair
     int seqNumber;/*The chair's sequence number of all chairs*/
 } Chair;
 
-
 Chair waitingChairs[NUM_CHAIRS];    /*Chairs for waiting area*/
 int availableChairs = NUM_CHAIRS;   /*Number of available waiting chairs*/
 
@@ -71,7 +51,6 @@ int nextID = 1;     /* ID for customer */
 
 int nextCut = 0;    /*  Point to the chair which next served customer sits on  */
 int nextSit = 0;    /*  Point to the chair which will be sat when next customer comes */
-
 
 /*For poisson distribution*/
 float mean;
@@ -130,6 +109,7 @@ void *barberThread(void* arg)
 		dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER);
 		cout<<"\nThis is Barber "<<*pID<<" cutting!!\n\n";
 		dispatch_semaphore_signal(ioMutex);
+
         dispatch_semaphore_wait(customers, DISPATCH_TIME_FOREVER); // Try to acquire a customer.
         //Go to sleep if no customers
         dispatch_semaphore_wait(Mutex, DISPATCH_TIME_FOREVER); // Acquire access to waiting
@@ -143,8 +123,7 @@ void *barberThread(void* arg)
         dispatch_semaphore_signal(Mutex); // Release waiting
         cutHair(*pID, waitingChairs[nowCut]); //pick the customer which counter point
     }
-
-	pthread_exit(0);
+	//pthread_exit(0);
 }
 
 void waitForHairCut(struct customerData *a)
@@ -187,15 +166,12 @@ void *customerThread(void* arg)
     dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER); // Acquire access to waiting
     cout << "(C)Customer No." << data->cusID <<" just finished his haircut!"<<endl;
     dispatch_semaphore_signal(ioMutex); // Release waiting
-
-	pthread_exit(0);
-
+	//pthread_exit(0);
 }
 
 int *possionDistribution(float mean, int range, int num_period)
 {
     const int NUM_TIMES = num_period;
-
     default_random_engine generator;
     poisson_distribution<int> distribution(mean);
 
@@ -212,7 +188,6 @@ int *possionDistribution(float mean, int range, int num_period)
     }
 
     realNum_customer = 0;
-
     for(int i=0; i<range; i++)
     {
         cout << i << " : " << frequenceArray[i] <<endl;
@@ -221,16 +196,13 @@ int *possionDistribution(float mean, int range, int num_period)
     cout << "Sum : " << realNum_customer << endl << endl;
     dispatch_semaphore_signal(ioMutex);
 
-
     return frequenceArray;
 }
 
 void createCustomers(int timeRange,int num_customer,float mean)
 {
-
     pthread_t cus[num_customer];
     int cusTH = 0;      //this is n-th customer. (0 represent the first customer)
-
     struct customerData cusData[num_customer];
 
     int *cusArray = possionDistribution(mean, timeRange, num_customer); //Use p_s create
@@ -294,8 +266,8 @@ int main()
 
     if( (cusMutex = sem_open("e",O_CREAT,0644 ,1))== SEM_FAILED){
         cout << "Fail" << endl;
-    }     
-	
+    }
+
     int value = 0;
     sem_getvalue(Mutex, &value);
     cout << "Mutex = "<< value << endl;
@@ -317,25 +289,20 @@ int main()
         barberID[i] = i+1; // fill the barID
         pthread_create(&bar[i], NULL, barberThread, (void*)&barberID[i]);  // create all barber thread
     }
-
     createCustomers(timeRange,num_customer,mean);
-
 
     for(int i=0; i<NUM_BARBERS; i++)
     {
         cout<<"////pthread_bar"<<i<<endl;
         pthread_join(bar[i], NULL);
     }
-
     cout<<"////pthread_bar_exit"<<endl;
 
-	
 	dispatch_release(customers);
 	dispatch_release(barbers);
 	dispatch_release(Mutex);
 	dispatch_release(ioMutex);
 	dispatch_release(cusMutex);
-
 
     cout<<endl<<"All customers finish their haircuts!"<<endl;
     return 0;
