@@ -107,7 +107,11 @@ void *barberThread(void* arg)
     while(1)
     {
         sem_wait(&cusMutex);
-        if(totalServedCustomers >= realNum_customer){
+        if(realNum_customer==0){
+            sem_post(&cusMutex);
+            continue;
+        }
+        else if(totalServedCustomers >= realNum_customer){
             sem_post(&cusMutex);
             break;
         }
@@ -137,7 +141,6 @@ void *customerThread(void* arg)
 {
     struct customerData *data = (struct customerData*)arg;
     sem_wait(&mutex); // Acquire access to waiting
-
     if( availableChairs == 0 )
     {
         sem_wait(&ioMutex); // Acquire access to waiting
@@ -193,7 +196,9 @@ int *possionDistribution(float mean, int range, int num_period)
     realNum_customer = 0;
     for(int i=0; i<range; i++)
     {
+        sem_wait(&cusMutex);
         realNum_customer += frequenceArray[i];
+        sem_post(&cusMutex);
     }
     sem_wait(&ioMutex);
     cout << "Sum : " << realNum_customer << endl << endl;
@@ -202,13 +207,11 @@ int *possionDistribution(float mean, int range, int num_period)
     return frequenceArray;
 }
 
-void createCustomers(int timeRange,int num_customer,float mean)
+void createCustomers(int timeRange,int num_customer,int *cusArray)
 {
     pthread_t cus[num_customer];
     int cusTH = 0;      //this is n-th customer. (0 represent the first customer)
     struct customerData cusData[num_customer];
-
-    int *cusArray = possionDistribution(mean, timeRange, num_customer); //Use p_s create
 
     for(int i=0; i<timeRange; i++)
     {
@@ -224,7 +227,7 @@ void createCustomers(int timeRange,int num_customer,float mean)
             cout <<endl<< "Create Customer No."<< cusData[cusTH].cusID <<".\t(now Time :"<< i << ")"<<endl;
             sem_post(&ioMutex); // Release waiting
 
-            pthread_create(&cus[cusTH], NULL, customerThread, (void*)&cusData[cusTH]);
+            pthread_create(&cus[cusTH], NULL, &customerThread, (void*)&cusData[cusTH]);
 
             cusTH ++;
             nextID ++;
@@ -260,16 +263,18 @@ int main()
     for(int i=0; i<NUM_CHAIRS; i++)  // fill the number of tn of all waiting chair
         waitingChairs[i].seqNumber = i;
 
+    int *cusArray = possionDistribution(mean, timeRange, num_customer); //Use p_s create
+
     pthread_t bar[NUM_BARBERS];
     int barberID[NUM_BARBERS];
 
     for(int i=0; i<NUM_BARBERS; i++)
     {
         barberID[i] = i+1; // fill the barID
-        pthread_create(&bar[i], NULL, barberThread, (void*)&barberID[i]);  // create all barber thread
+        pthread_create(&bar[i], NULL, &barberThread, (void*)&barberID[i]);  // create all barber thread
     }
 
-    createCustomers(timeRange,num_customer,mean);
+    createCustomers(timeRange,num_customer,cusArray);
 
     for(int i=0; i<NUM_BARBERS; i++)
     {
@@ -277,7 +282,6 @@ int main()
         pthread_join(bar[i], NULL);
     }
     cout<<"////pthread_bar_exit"<<endl;
-
 
     cout<<endl<<"All customers finish their haircuts!"<<endl;
     return 0;
