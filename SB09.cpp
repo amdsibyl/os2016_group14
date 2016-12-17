@@ -104,8 +104,15 @@ void *barberThread(void* arg)
     cout << "This is Barber No." << *pID << endl;
     sem_post(&ioMutex); // Release waiting
 
-    while(totalServedCustomers < realNum_customer)
+    while(1)
     {
+        sem_wait(&cusMutex);
+        if(totalServedCustomers >= realNum_customer){
+            sem_post(&cusMutex);
+            break;
+        }
+        sem_post(&cusMutex);
+
         sem_wait(&customers); // Try to acquire a customer.
         //Go to sleep if no customers
         sem_wait(&mutex); // Acquire access to waiting
