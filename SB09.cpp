@@ -107,11 +107,7 @@ void *barberThread(void* arg)
     while(1)
     {
         sem_wait(&cusMutex);
-        if(realNum_customer==0){
-            sem_post(&cusMutex);
-            continue;
-        }
-        else if(totalServedCustomers >= realNum_customer){
+        if(totalServedCustomers >= realNum_customer){
             sem_post(&cusMutex);
             break;
         }
@@ -139,6 +135,7 @@ void waitForHairCut(struct customerData *a)
 
 void *customerThread(void* arg)
 {
+    //pthread_detach(pthread_self());
     struct customerData *data = (struct customerData*)arg;
     sem_wait(&mutex); // Acquire access to waiting
     if( availableChairs == 0 )
@@ -172,6 +169,7 @@ void *customerThread(void* arg)
     cout << "(C)Customer No." << data->cusID <<" just finished his haircut!"<<endl;
     sem_post(&ioMutex); // Release waiting
 
+    //pthread_exit(0);
 }
 
 int *possionDistribution(float mean, int range, int num_period)
@@ -242,6 +240,7 @@ void createCustomers(int timeRange,int num_customer,int *cusArray)
         //cout<<"////pthread_cus"<<endl;
     }
     //cout<<"////pthread_cus_exit"<<endl;
+
 }
 
 int main()
