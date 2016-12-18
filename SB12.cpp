@@ -319,14 +319,14 @@ int main()
 		pthread_join(bar[i], NULL);
 	}
 	cout<<"////pthread_bar_exit"<<endl;
-/*
+
     sem_destroy(&barbers);
     sem_destroy(&customers);
     sem_destroy(&Mutex);
     sem_destroy(&ioMutex);
     sem_destroy(&cusMutex);
     sem_destroy(&barMutex);
-*/
+
 	cout<<endl<<"All customers finish their haircuts!"<<endl;
 	return 0;
 }
