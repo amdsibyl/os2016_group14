@@ -122,14 +122,16 @@ void *barberThread(void* arg)
 		//		dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER);
 		//		cout<<"\n----- "<<totalServedCustomers<<" / "<<cus_perTime[currentTime]<<" -----\n";
 		//		dispatch_semaphore_signal(ioMutex);
-		if(realNum_customer == 0 || totalServedCustomers >= cus_perTime[currentTime]){
+		if(totalServedCustomers >= cus_perTime[currentTime] && totalServedCustomers != realNum_customer){
 			dispatch_semaphore_signal(cusMutex);
 			continue;
 		}
-		else if(totalServedCustomers >= realNum_customer && currentTime == TIME_RANGE){
-			dispatch_semaphore_signal(customers);
+		else if(totalServedCustomers >= realNum_customer){
 			dispatch_semaphore_signal(cusMutex);
 			dispatch_semaphore_signal(barbers);  // The barber is now ready to cut hair
+		dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER);
+		cout<<"\n@ Barber "<<*pID<<" e04!!!\n\n";
+		dispatch_semaphore_signal(ioMutex);
 			break;
 		}
 		dispatch_semaphore_signal(cusMutex);
