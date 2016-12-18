@@ -11,8 +11,8 @@
 #define NUM_CHAIRS 5
 
 #define MEAN 3
-#define TIME_RANGE 10
-#define NUM_CUSTOMER 10
+#define TIME_RANGE 20
+#define NUM_CUSTOMER 20
 
 using namespace std;
 
@@ -84,7 +84,7 @@ void showWhoSitOnChair()
 void cutHair(int barberID, Chair wChair)
 {
 	dispatch_semaphore_wait(cusMutex, DISPATCH_TIME_FOREVER);
-	totalServedCustomers++;
+	++totalServedCustomers;
 	dispatch_semaphore_signal(barMutex);
 
 	dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER); // Acquire access to waiting
@@ -118,51 +118,48 @@ void *barberThread(void* arg)
 
 	while(1)
 	{
-		dispatch_semaphore_wait(cusMutex, DISPATCH_TIME_FOREVER);
+//		dispatch_semaphore_wait(cusMutex, DISPATCH_TIME_FOREVER);
 		//		dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER);
 		//		cout<<"\n----- "<<totalServedCustomers<<" / "<<cus_perTime[currentTime]<<" -----\n";
 		//		dispatch_semaphore_signal(ioMutex);
 		if(totalServedCustomers >= cus_perTime[currentTime] && totalServedCustomers != realNum_customer){
-			dispatch_semaphore_signal(cusMutex);
+//			dispatch_semaphore_signal(cusMutex);
 			continue;
 		}
 		else if(totalServedCustomers >= realNum_customer){
-			dispatch_semaphore_signal(cusMutex);
-			dispatch_semaphore_signal(barbers);  // The barber is now ready to cut hair
-		dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER);
-		cout<<"\n@ Barber "<<*pID<<" e04!!!\n\n";
-		dispatch_semaphore_signal(ioMutex);
+//			dispatch_semaphore_signal(cusMutex);
+//			dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER);
+//			cout<<"\n@@ Barber "<<*pID<<" e04!!\n\n";
+//			dispatch_semaphore_signal(ioMutex);
 			break;
 		}
-		dispatch_semaphore_signal(cusMutex);
+//		dispatch_semaphore_signal(cusMutex);
 
 		dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER);
 		cout<<"\nBarber "<<*pID<<" is free!!\n\n";
 		dispatch_semaphore_signal(ioMutex);
 
 		dispatch_semaphore_wait(barMutex,DISPATCH_TIME_FOREVER);
-		if(totalServedCustomers < cus_perTime[currentTime]){
-			dispatch_semaphore_wait(customers, DISPATCH_TIME_FOREVER); // Try to acquire a customer.
-			//		dispatch_semaphore_wait(customers, TIME_RANGE*NSEC_PER_SEC); // Try to acquire a customer.
-
+//				dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER);
+//				cout<<"\n----- "<<totalServedCustomers<<" / "<<cus_perTime[currentTime]<<" -----\n";
+//				dispatch_semaphore_signal(ioMutex);
+		if(totalServedCustomers < realNum_customer){
 //			dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER);
-//			cout<<"\n@1 Barber "<<*pID<<" is free!!\n\n";
+//			cout<<"\n@1 Barber "<<*pID<<" cus\n\n";
 //			dispatch_semaphore_signal(ioMutex);
+			dispatch_semaphore_wait(customers, DISPATCH_TIME_FOREVER); // Try to acquire a customer.
 
 			//Go to sleep if no customers
-			dispatch_semaphore_wait(Mutex, DISPATCH_TIME_FOREVER); // Acquire access to waiting
-			//		dispatch_semaphore_wait(Mutex,TIME_RANGE*NSEC_PER_SEC); // Acquire access to waiting
-
 //			dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER);
-//			cout<<"\n@2 Barber "<<*pID<<" is free!!\n\n";
+//			cout<<"\n@2 Barber "<<*pID<<" mtx\n\n";
 //			dispatch_semaphore_signal(ioMutex);
+			dispatch_semaphore_wait(Mutex, DISPATCH_TIME_FOREVER); // Acquire access to waiting
 
 			//When a barber is waken -> wants to modify # of available chairs
-			dispatch_semaphore_signal(barbers);  // The barber is now ready to cut hair
-
 //			dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER);
-//			cout<<"\n@3 Barber "<<*pID<<" is free!!\n\n";
+//			cout<<"\n@2 Barber "<<*pID<<" barbers\n\n";
 //			dispatch_semaphore_signal(ioMutex);
+			dispatch_semaphore_signal(barbers);  // The barber is now ready to cut hair
 
 
 			int nowCut = nextCut;
@@ -172,9 +169,12 @@ void *barberThread(void* arg)
 			dispatch_semaphore_signal(Mutex); // Release waiting
 			cutHair(*pID, waitingChairs[nowCut]); //pick the customer which counter point
 		}
-		else
+		else{
+			dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER);
+			cout<<"\n@2 Barber "<<*pID<<" arrrrr\n\n";
+			dispatch_semaphore_signal(ioMutex);
 			dispatch_semaphore_signal(barMutex);
-
+		}
 	}
 	//pthread_exit(0);
 }
