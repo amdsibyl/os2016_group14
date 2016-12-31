@@ -13,6 +13,7 @@ class MainWindow : public QMainWindow
 
 public:
     explicit MainWindow(QWidget *parent = 0);
+    void mouseMoveEvent ( QMouseEvent * event );
     void mouseReleaseEvent ( QMouseEvent * event );
     void changeBarberMode(int i,bool isBusy);
     Ui::MainWindow* getUI(){return ui;}

@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <QMouseEvent>
+#include <QtGui>
 
 #include <fcntl.h>
 #include <iostream>
@@ -15,7 +16,7 @@
 #define NUM_BARBERS 3
 #define NUM_CHAIRS 5
 
-#define MEAN 5
+#define MEAN 3
 #define TIME_RANGE 10
 #define NUM_CUSTOMER 3
 
@@ -199,7 +200,8 @@ void showWhoSitOnChair()
 void cutHair(int barberID, Chair wChair)
 {
     isBusy[barberID-1] = true;
-    gui->changeBarberMode(barberID-1,true);
+
+    gui->changeBarberMode(barberID,true);
 
     dispatch_semaphore_wait(cusMutex, DISPATCH_TIME_FOREVER);
     ++totalServedCustomers;
@@ -223,7 +225,7 @@ void cutHair(int barberID, Chair wChair)
 
     for(long long i=0; i<200000000; i++); //Cut hair time
     isBusy[barberID-1] = false;
-    gui->changeBarberMode(barberID-1,false);
+    //gui->changeBarberMode(barberID,false);
 
 
     dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER); // Acquire access to waiting
@@ -306,7 +308,7 @@ void *barberThread(void* arg)
             dispatch_semaphore_signal(barMutex);
         }
     }
-    //pthread_exit(0);
+    pthread_exit(0);
 }
 
 
@@ -354,7 +356,7 @@ void *customerThread(void* arg)
     dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER); // Acquire access to waiting
     cout << "(C)Customer No." << data->cusID <<" just finished his haircut!"<<endl;
     dispatch_semaphore_signal(ioMutex); // Release waiting
-    //pthread_exit(0);
+    pthread_exit(0);
 }
 
 int *possionDistribution(float mean, int range, int num_period)
@@ -442,7 +444,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    QImage *Image = new QImage( "/Users/HSUAN/qt/untitled1/pic/barber_sleep.png" ) ;
+    QImage *Image = new QImage( "/Users/HSUAN/os2016_group14/proj_gui/pic/barber_sleep.png" ) ;
     labelImage = Image;
 
     ui->barber_1->setPixmap(QPixmap::fromImage(*labelImage));
@@ -452,11 +454,22 @@ MainWindow::MainWindow(QWidget *parent) :
     gui = this;
 }
 
+void test(){
+    gui->changeBarberMode(1,true);
+
+}
+
+void MainWindow::mouseMoveEvent ( QMouseEvent * event )
+{
+}
+
 
 void MainWindow::mouseReleaseEvent ( QMouseEvent * event )
 {
   if(event->button() == Qt::LeftButton)
   {
+      test();
+
       mean = MEAN;
       timeRange = TIME_RANGE;
       num_customer = NUM_CUSTOMER;
@@ -505,15 +518,19 @@ void MainWindow::mouseReleaseEvent ( QMouseEvent * event )
   }
 }
 
+QImage *busyImage = new QImage( "/Users/HSUAN/os2016_group14/proj_gui/pic/barber_busy.png" ) ;
+QImage *sleepImage = new QImage( "/Users/HSUAN/os2016_group14/proj_gui/pic/barber_sleep.png" ) ;
+
 void MainWindow::changeBarberMode(int i,bool isBusy){
+#if 0
+    app.processEvents();
+#endif
     if(isBusy){
-        QImage *Image = new QImage( "/Users/HSUAN/qt/untitled1/pic/barber_busy.png" ) ;
         cout<<"hi\n";
-        *labelImage = *Image;
+        *labelImage = *busyImage;
     }
     else{
-        QImage *Image = new QImage( "/Users/HSUAN/qt/untitled1/pic/barber_sleep.png" ) ;
-        *labelImage = *Image;
+        *labelImage = *sleepImage;
     }
     if(i==1)
         ui->barber_1->setPixmap(QPixmap::fromImage(*labelImage));
@@ -521,6 +538,8 @@ void MainWindow::changeBarberMode(int i,bool isBusy){
         ui->barber_2->setPixmap(QPixmap::fromImage(*labelImage));
     else if(i==3)
         ui->barber_3->setPixmap(QPixmap::fromImage(*labelImage));
+    //a->processEvents();
+
 }
 
 
