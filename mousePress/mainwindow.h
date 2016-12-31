@@ -13,7 +13,7 @@ class MainWindow : public QMainWindow
 
 public:
     explicit MainWindow(QWidget *parent = 0);
-    void mousePressEvent();
+    void mousePressEvent(QMouseEvent *event);
     ~MainWindow();
 
 private:
