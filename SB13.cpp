@@ -1,3 +1,15 @@
+#ifdef __APPLE__
+#include <openGL/gl.h>
+#include <openGL/glu.h>
+#include <GLUT/glut.h>
+#else
+#include <windows.h>
+//#include <GL/glew.h>
+#include <GL/glut.h>
+#endif
+
+#include "RGBpixmap.h"
+
 #include <fcntl.h>
 #include <iostream>
 #include <dispatch/dispatch.h>
@@ -6,14 +18,19 @@
 #include <unistd.h>
 #include <cstdlib>
 #include <random>
+#include <stdlib.h>
 #include <iomanip>
+#include <string.h>
 
 #define NUM_BARBERS 3
 #define NUM_CHAIRS 5
 
-#define MEAN 3
+#define MEAN 5
 #define TIME_RANGE 10
 #define NUM_CUSTOMER 20
+
+RGBApixmap bg;
+RGBApixmap barSleep,barBusy,chairPic,cusPic[20];
 
 using namespace std;
 
@@ -395,11 +412,93 @@ void createCustomers(int timeRange,int num_customer,float mean,int* cusArray)
 	//	cout<<"////pthread_cus_exit"<<endl;
 }
 
-int main()
-{
 
-	/*
-	   cout<<"Enter mean number (for poisson distribution):";
+void display(void)
+{
+    glClear(GL_COLOR_BUFFER_BIT);
+    
+    //draw background
+    glRasterPos2i(50, 50);
+    bg.blend();
+    
+    barSleep.blendTex(100, 100);
+    //barSleep.blendTex(250, 100);
+    //barSleep.blendTex(400, 100);
+    
+    glutSwapBuffers();
+}
+
+void keys(unsigned char key, int x, int y)
+{
+    switch(key)
+    {
+        case 'Q':
+        case 'q':
+            exit(0);
+            break;
+            
+        case ' ':
+            pthread_t bar[NUM_BARBERS];
+            int barberID[NUM_BARBERS];
+            
+            int *cusArray = possionDistribution(mean, timeRange, num_customer); //Use p_s create
+            
+            for(int i=0; i<NUM_BARBERS; i++)
+            {
+                barberID[i] = i+1; // fill the barID
+                pthread_create(&bar[i], NULL, &barberThread, (void*)&barberID[i]);  // create all barber thread
+            }
+            createCustomers(timeRange,num_customer,mean,cusArray);
+            
+            for(int i=0; i<NUM_BARBERS; i++)
+            {
+                cout<<"////pthread_bar"<<i<<endl;
+                pthread_join(bar[i], NULL);
+            }
+            cout<<"////pthread_bar_exit"<<endl;
+            
+            dispatch_release(customers);
+            dispatch_release(barbers);
+            dispatch_release(Mutex);
+            dispatch_release(ioMutex);
+            dispatch_release(cusMutex);
+            dispatch_release(barMutex);
+            
+            cout<<endl<<"All customers finish their haircuts!"<<endl;
+
+
+            break;
+
+    } //switch(key)
+    
+    glutPostRedisplay();
+}
+
+
+void init( void )
+{
+    glClearColor( 1.0, 1.0, 1.0, 1.0 );
+   	glutDisplayFunc(display);
+    glutKeyboardFunc(keys);
+    
+    glShadeModel(GL_SMOOTH);
+}
+
+
+int main( int argc, char** argv )
+{
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
+    glutInitWindowSize(1024, 960);
+    glutInitWindowPosition(50, 30);
+    glutCreateWindow("Barber Sleeping Problem");
+    
+    init();
+    glutPostRedisplay();
+    
+    
+    /*
+     cout<<"Enter mean number (for poisson distribution):";
 	   cin>>mean;
 	   cout<<"Enter the time range (sec) that you want to test:";
 	   cin>>timeRange;
@@ -420,38 +519,43 @@ int main()
 	for(int i=0;i<NUM_CUSTOMER;i++){
 		comeCus[i] = false;
 	}
-
-
 	for(int i=0; i<NUM_CHAIRS; i++)  // fill the number of tn of all waiting chair
 		waitingChairs[i].seqNumber = i;
 
-	pthread_t bar[NUM_BARBERS];
-	int barberID[NUM_BARBERS];
-
-	int *cusArray = possionDistribution(mean, timeRange, num_customer); //Use p_s create
-
-	for(int i=0; i<NUM_BARBERS; i++)
-	{
-		barberID[i] = i+1; // fill the barID
-		pthread_create(&bar[i], NULL, &barberThread, (void*)&barberID[i]);  // create all barber thread
-	}
-	createCustomers(timeRange,num_customer,mean,cusArray);
-
-	for(int i=0; i<NUM_BARBERS; i++)
-	{
-		cout<<"////pthread_bar"<<i<<endl;
-		pthread_join(bar[i], NULL);
-	}
-	cout<<"////pthread_bar_exit"<<endl;
-
-	dispatch_release(customers);
-	dispatch_release(barbers);
-	dispatch_release(Mutex);
-	dispatch_release(ioMutex);
-	dispatch_release(cusMutex);
-	dispatch_release(barMutex);
-	print();
-
-	cout<<endl<<"All customers finish their haircuts!"<<endl;
+    barSleep.readBMPFile("/Users/HSUAN/os2016_group14/pic/barber_sleep.BMP");cout<<'.';
+    barBusy.readBMPFile("/Users/HSUAN/os2016_group14/pic/barber_busy.BMP");cout<<'.'<<endl;
+    chairPic.readBMPFile("pic/chair.BMP");
+    cusPic[0].readBMPFile("pic/cus_1.BMP");
+    cusPic[1].readBMPFile("pic/cus_2.BMP");
+    cusPic[2].readBMPFile("pic/cus_3.BMP");
+    cusPic[3].readBMPFile("pic/cus_4.BMP");
+    cusPic[4].readBMPFile("pic/cus_5.BMP");
+    cusPic[5].readBMPFile("pic/cus_6.BMP");
+    cusPic[6].readBMPFile("pic/cus_7.BMP");
+    cusPic[7].readBMPFile("pic/cus_8.BMP");
+    cusPic[8].readBMPFile("pic/cus_9.BMP");
+    cusPic[9].readBMPFile("pic/cus_10.BMP");
+    cusPic[10].readBMPFile("pic/cus_11.BMP");
+    cusPic[11].readBMPFile("pic/cus_12.BMP");
+    cusPic[12].readBMPFile("pic/cus_13.BMP");
+    cusPic[13].readBMPFile("pic/cus_14.BMP");
+    cusPic[14].readBMPFile("pic/cus_15.BMP");
+    cusPic[15].readBMPFile("pic/cus_16.BMP");
+    cusPic[16].readBMPFile("pic/cus_17.BMP");
+    cusPic[17].readBMPFile("pic/cus_18.BMP");
+    cusPic[18].readBMPFile("pic/cus_19.BMP");
+    cusPic[19].readBMPFile("pic/cus_20.BMP");
+    
+    /*
+    barSleep.setChromaKey(232, 248, 248);
+    barBusy.setChromaKey(232, 248, 248);
+    chairPic.setChromaKey(232, 248, 248);
+    for (int i=0; i<20; i++)
+        cusPic[i].setChromaKey(232, 248, 248);
+    */
+    
+    glutMainLoop();
+    
+    
 	return 0;
 }
