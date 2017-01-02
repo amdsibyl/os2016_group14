@@ -7,8 +7,6 @@
 #endif
 
 #include "RGBpixmap.h"
-#include <time.h>
-#include <string.h>
 
 #include <iostream>
 #include <semaphore.h>
@@ -20,13 +18,14 @@
 //#include <semaphore.h>
 #include <mutex>
 #include <condition_variable>
+#include <dispatch/dispatch.h>
 
 #define NUM_BARBERS 3
 #define NUM_CHAIRS 5
 
-#define MEAN 3
-#define TIME_RANGE 5
-#define NUM_CUSTOMER 5
+#define MEAN 5
+#define TIME_RANGE 10
+#define NUM_CUSTOMER 15
 
 using namespace std;
 
@@ -44,6 +43,10 @@ using namespace std;
 
 /* initial for GUI */
 bool isBusy[NUM_BARBERS];
+int cutting[NUM_BARBERS];
+bool isSit[NUM_CHAIRS];
+int seat[NUM_CHAIRS];
+int comeCus[NUM_CUSTOMER];
 
 //Set windows
 int screenWidth = 800 , screenHeight = 600;
@@ -127,11 +130,17 @@ void showWhoSitOnChair()
 	cout<<"Waiting Chairs:";
 	for(int i=0; i<NUM_CHAIRS; i++)
 	{
-		if(waitingChairs[i].data != nullptr)
+		if(waitingChairs[i].data != nullptr){
+			isSit[i] = true;
 			cout << waitingChairs[i].data->cusID << " ";
-		else cout << "0 ";
+		}
+		else{
+			isSit[i] = false;
+			cout << "0 ";
+		}
 	}
 	cout << endl;
+
 	ioMutex.unlock(); // Release waiting
 }
 
@@ -153,7 +162,7 @@ void cutHair(int barberID, Chair wChair)
 
 	waitingChairs[wChair.seqNumber].data = nullptr;
 
-	for(long long i=0; i<200000000; i++); //Cut hair time
+	for(long long i=0; i<1*NSEC_PER_SEC; i++); //Cut hair time
 
 	ioMutex.lock(); // Acquire access to waiting
 	cout << "(B)Barber " << barberID <<" just finished cutting Customer No." << wChair.data->cusID << "'s hair !" <<endl<<endl;;
@@ -189,14 +198,15 @@ void *barberThread(void* arg)
 
 			/* GUI change barber's mode */
 			isBusy[*pID-1] = true;
-			glutPostRedisplay();
-			//usleep(10000000);
+			cutting[*pID-1] = waitingChairs[nowCut].data->cusID;
+			isSit[waitingChairs[nowCut].seqNumber] = false;
+			glutPostRedisplay(); //////////////GUI
 
 			cutHair(*pID, waitingChairs[nowCut]); //pick the customer which counter point
 
 			isBusy[*pID-1] = false;
 			//this_thread::sleep_for( chrono::milliseconds( 1000 ));
-			glutPostRedisplay();
+			glutPostRedisplay(); //////////////GUI
 		}
 		else{
 			barMutex.unlock();
@@ -220,6 +230,8 @@ void *customerThread(void* arg)
 	{
 		ioMutex.lock(); // Acquire access to waiting
 		cout << "There is no available chair. Customer No." << data->cusID << " is leaving!" << endl;
+		comeCus[data->cusID-1] = false;
+
 		ioMutex.unlock(); // Release waiting
 
 		cusMutex.lock();
@@ -231,12 +243,18 @@ void *customerThread(void* arg)
 	}
 	ioMutex.lock(); // Acquire access to waiting
 	cout << "Customer No." << data->cusID << " is sitting on chair " << nextSit << "." << endl;
+	comeCus[data->cusID-1] = false;
+	seat[nextSit] = data->cusID;
+
 	ioMutex.unlock(); // Release waiting
 
 	waitingChairs[nextSit].data = data;
 	nextSit = (nextSit+1) % NUM_CHAIRS;
 	availableChairs--;
 	showWhoSitOnChair();
+
+    //usleep(10000);
+	glutPostRedisplay(); //////////////GUI
 
 	customers.signal(); // Wake up a barber (if needed)
 	Mutex.unlock(); // Release waiting
@@ -318,6 +336,11 @@ void createCustomers(int timeRange,int num_customer,float mean,int* cusArray, th
 
 			ioMutex.lock();
 			cout <<endl<< "Create Customer No."<< cusData[cusTH].cusID <<".\t(now Time :"<< currentTime << ")"<<endl;
+			comeCus[cusData[cusTH].cusID-1] = true;
+            
+            glutPostRedisplay(); //////////////GUI
+            usleep(100000);    // next time unit
+
 			ioMutex.unlock(); // Release waiting
 
 			cus[cusTH] = thread(&customerThread, (void*)&cusData[cusTH]);
@@ -356,7 +379,11 @@ void runMain(){
 
 	/* initial */
 	for(int i=0;i<NUM_BARBERS;i++){
+		cutting[i] = -1;
 		isBusy[i] = false;
+	}
+	for(int i=0;i<NUM_CUSTOMER;i++){
+		comeCus[i] = false;
 	}
 	for(int i=0; i<NUM_CHAIRS; i++)  // fill the number of tn of all waiting chair
 		waitingChairs[i].seqNumber = i;
@@ -425,17 +452,19 @@ void display(void)
 	chairPic.blendTexRotate(480, 200,1,1);
 	chairPic.blendTexRotate(630, 200,1,1);
 
+
 	/* barber 1 */
 	if(isBusy[0]){
 		barBusy.blendTexRotate(50, 450,1,1);
+		cusPic[cutting[0]-1].blendTexRotate(50, 450,0.95,0.95);
 	}
 	else
 		barSleep.blendTexRotate(50, 450,1,1);
-	//cusPic[0].blendTexRotate(50, 450,0.95,0.95);
 
 	/* barber 2 */
 	if(isBusy[1]){
 		barBusy.blendTexRotate(200, 450,1,1);
+		cusPic[cutting[1]-1].blendTexRotate(200, 450,0.95,0.95);
 	}
 	else
 		barSleep.blendTexRotate(200, 450,1,1);
@@ -443,9 +472,38 @@ void display(void)
 	/* barber 3 */
 	if(isBusy[2]){
 		barBusy.blendTexRotate(350, 450,1,1);
+		cusPic[cutting[2]-1].blendTexRotate(350, 450,0.95,0.95);
 	}
 	else
 		barSleep.blendTexRotate(350, 450,1,1);
+
+
+	/* customers sit on the chairs */
+	if(isSit[0]){
+		cusPic[seat[0]-1].blendTexRotate(50, 220,0.95,0.95);
+	}
+	if(isSit[1]){
+		cusPic[seat[1]-1].blendTexRotate(200, 220,0.95,0.95);
+	}
+	if(isSit[2]){
+		cusPic[seat[2]-1].blendTexRotate(350, 220,0.95,0.95);
+	}
+	if(isSit[3]){
+		cusPic[seat[3]-1].blendTexRotate(500, 220,0.95,0.95);
+	}
+	if(isSit[4]){
+		cusPic[seat[4]-1].blendTexRotate(650, 220,0.95,0.95);
+	}
+    
+    
+    /* coming customers */
+    int count = 0;
+    for(int i=0;i<NUM_CUSTOMER;i++){
+        if(comeCus[i]==true){
+            cusPic[i].blendTexRotate(50+150*count, 50,0.95,0.95);
+            count++;
+        }
+    }
 
 
 	CheckError(__LINE__);
