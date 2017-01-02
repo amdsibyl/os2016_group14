@@ -1,11 +1,9 @@
 #include <iostream>
 #include <semaphore.h>
-//#include <pthread.h>
 #include <unistd.h>
 #include <cstdlib>
 #include <random>
 #include <thread>
-//#include <semaphore.h>
 #include <mutex>
 #include <condition_variable>
 
@@ -57,18 +55,12 @@ class Semaphore {
 };
 
  /*Shared data*/
-//sem_t barbers;      /*Number of barbers waiting for customers*/
-//sem_t customers;    /*Number of customers waiting for service*/
-//sem_t Mutex;        /*Mutex used for mutual exclusion*/
-//sem_t ioMutex;      /*Mutex used for input and output*/
-//sem_t cusMutex;     /*Mutex used for change totalServedCustomers*/
-//sem_t barMutex;     /*Mutex used for one check per time*/
-
-
-Semaphore barbers(NUM_BARBERS);
-Semaphore customers(0);
-mutex Mutex,ioMutex,cusMutex,barMutex;
-
+Semaphore barbers(NUM_BARBERS);      /*Number of barbers waiting for customers*/
+Semaphore customers(0);    /*Number of customers waiting for service*/
+mutex  Mutex;        /*Mutex used for mutual exclusion*/
+mutex  ioMutex;      /*Mutex used for input and output*/
+mutex  cusMutex;     /*Mutex used for change totalServedCustomers*/
+mutex  barMutex;     /*Mutex used for one check per time*/
 
 struct customerData
 {
@@ -152,22 +144,7 @@ void *barberThread(void* arg)
 
 	while(1)
 	{
-        /*
-        //cusMutex.lock();
-		if(totalServedCustomers >= realNum_customer){
-            //cusMutex.unlock();
-			break;
-		}
-
-		if(totalServedCustomers >= cus_perTime[currentTime] && totalServedCustomers < realNum_customer){
-			//cusMutex.unlock();
-			cout<<"Wait"<<endl;
-			continue;
-		}
-        //cusMutex.unlock();
-        */
-
-		barMutex.lock();
+        barMutex.lock();
         cusMutex.lock();
 		if(totalServedCustomers < realNum_customer){
             cusMutex.unlock();
@@ -210,7 +187,6 @@ void *customerThread(void* arg)
 
         cusMutex.lock();
         --realNum_customer;
-        //--cus_perTime[currentTime];
         cusMutex.unlock();
 
         Mutex.unlock();
@@ -264,7 +240,6 @@ int *possionDistribution(float mean, int range, int num_period)
 		ioMutex.unlock();
 
 		realNum_customer += frequenceArray[i];
-		//cus_perTime[i] = realNum_customer;
 		cusMutex.unlock();
 	}
 	ioMutex.lock();
@@ -276,7 +251,6 @@ int *possionDistribution(float mean, int range, int num_period)
 
 void createCustomers(int timeRange,int num_customer,float mean,int* cusArray)
 {
-	//pthread_t cus[num_customer];
 	thread cus[NUM_CUSTOMER];
 
 	int cusTH = 0;      //this is n-th customer. (0 represent the first customer)
@@ -296,7 +270,6 @@ void createCustomers(int timeRange,int num_customer,float mean,int* cusArray)
 			cout <<endl<< "Create Customer No."<< cusData[cusTH].cusID <<".\t(now Time :"<< currentTime << ")"<<endl;
 			ioMutex.unlock(); // Release waiting
 
-			//pthread_create(&cus[cusTH], NULL, &customerThread, (void*)&cusData[cusTH]);
             cus[cusTH] = thread(&customerThread, (void*)&cusData[cusTH]);
 
 			cusTH ++;
@@ -308,15 +281,10 @@ void createCustomers(int timeRange,int num_customer,float mean,int* cusArray)
 
 	for(int i=0; i<num_customer; i++)
 	{
-		//pthread_join(cus[i], NULL);
-		//cus[i].join();
-		//cout<<"////pthread_cus"<<endl;
         if (cus[i].get_id() != thread::id()) {
             cus[i].join();
         }
 	}
-
-	//	cout<<"////pthread_cus_exit"<<endl;
 }
 
 int main()
@@ -326,19 +294,9 @@ int main()
 	timeRange = TIME_RANGE;
 	num_customer = NUM_CUSTOMER;
 
-	/*
-    sem_init(&customers, 0, 0); // at first, no customer
-    sem_init(&barbers, 0, NUM_BARBERS);
-    sem_init(&Mutex, 0, 1);
-    sem_init(&ioMutex, 0, 1);
-    sem_init(&cusMutex, 0, 1);
-    sem_init(&barMutex, 0, 1);
-*/
-
 	for(int i=0; i<NUM_CHAIRS; i++)  // fill the number of tn of all waiting chair
 		waitingChairs[i].seqNumber = i;
 
-	//pthread_t bar[NUM_BARBERS];
 	thread bar[NUM_BARBERS];
 	int barberID[NUM_BARBERS];
 
@@ -347,7 +305,6 @@ int main()
 	for(int i=0; i<NUM_BARBERS; i++)
 	{
 		barberID[i] = i+1; // fill the barID
-		//pthread_create(&bar[i], NULL, &barberThread, (void*)&barberID[i]);  // create all barber thread
         bar[i] = thread(&barberThread,(void*)&barberID[i]);
 	}
 	createCustomers(timeRange,num_customer,mean,cusArray);
@@ -355,23 +312,13 @@ int main()
 	for(int i=0; i<NUM_BARBERS; i++)
 	{
 		cout<<"////pthread_bar"<<i<<endl;
-		//pthread_join(bar[i], NULL);
-		//bar[i].join();
         if (bar[i].get_id() != thread::id()) {
             bar[i].join();
         }
 
 	}
 	cout<<"////pthread_bar_exit"<<endl;
-	
-/*
-    sem_destroy(&barbers);
-    sem_destroy(&customers);
-    sem_destroy(&Mutex);
-    sem_destroy(&ioMutex);
-    sem_destroy(&cusMutex);
-    sem_destroy(&barMutex);
-*/
+
 	cout<<endl<<"All customers finish their haircuts!"<<endl;
 	return 0;
 }
