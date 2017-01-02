@@ -32,7 +32,7 @@ using namespace std;
 
 class Semaphore {
     public:
-        semaphore(int value=1): count{value}, wakeups{0} {}
+        Semaphore(int value=1): count{value}, wakeups{0} {}
 
         void wait(){
             std::unique_lock<std::mutex> lock{mutex};
@@ -54,22 +54,19 @@ class Semaphore {
         int wakeups;
         std::mutex mutex;
         std::condition_variable condition;
-    };
-
-
-
-
-
-
+};
 
  /*Shared data*/
-sem_t barbers;      /*Number of barbers waiting for customers*/
-sem_t customers;    /*Number of customers waiting for service*/
+//sem_t barbers;      /*Number of barbers waiting for customers*/
+//sem_t customers;    /*Number of customers waiting for service*/
 //sem_t Mutex;        /*Mutex used for mutual exclusion*/
 //sem_t ioMutex;      /*Mutex used for input and output*/
 //sem_t cusMutex;     /*Mutex used for change totalServedCustomers*/
 //sem_t barMutex;     /*Mutex used for one check per time*/
 
+
+Semaphore barbers(NUM_BARBERS);
+Semaphore customers(0);
 mutex Mutex,ioMutex,cusMutex,barMutex;
 
 
@@ -107,7 +104,7 @@ int realNum_customer = 0;
 
 void showWhoSitOnChair()
 {
-    sem_wait(&ioMutex); // Acquire access to waiting
+    ioMutex.lock(); // Acquire access to waiting
     cout<<"Waiting Chairs:";
     for(int i=0; i<NUM_CHAIRS; i++)
     {
@@ -116,32 +113,32 @@ void showWhoSitOnChair()
         else cout << "0 ";
     }
     cout << endl;
-    sem_post(&ioMutex); // Release waiting
+    ioMutex.unlock(); // Release waiting
 }
 
 void cutHair(int barberID, Chair wChair)
 {
-	sem_wait(&cusMutex);
+	cusMutex.lock();
 	++totalServedCustomers;
-	sem_post(&barMutex);
+	barMutex.unlock();
 
-	sem_wait(&ioMutex); // Acquire access to waiting
+	ioMutex.lock(); // Acquire access to waiting
 	cout<<"total:"<<totalServedCustomers<<"/"<<realNum_customer<<endl;
-	sem_post(&ioMutex); // Release waiting
+	ioMutex.unlock(); // Release waiting
 
-	sem_post(&cusMutex);
+	cusMutex.unlock();
 
-	sem_wait(&ioMutex); // Acquire access to waiting
+	ioMutex.lock(); // Acquire access to waiting
 	cout << "(B) Barber " << barberID <<" is cutting Customer No." << wChair.data->cusID << "'s hair !"<<endl;
-	sem_post(&ioMutex); // Release waiting
+	ioMutex.unlock(); // Release waiting
 
 	waitingChairs[wChair.seqNumber].data = nullptr;
 
 	for(long long i=0; i<200000000; i++); //Cut hair time
 
-	sem_wait(&ioMutex); // Acquire access to waiting
+	ioMutex.lock(); // Acquire access to waiting
 	cout << "(B)Barber " << barberID <<" just finished cutting Customer No." << wChair.data->cusID << "'s hair !" <<endl<<endl;;
-	sem_post(&ioMutex); // Release waiting
+	ioMutex.unlock(); // Release waiting
 
 	wChair.data->hasFinishedCutting = true;
 }
@@ -149,47 +146,47 @@ void cutHair(int barberID, Chair wChair)
 void *barberThread(void* arg)
 {
 	int *pID = (int*)arg;
-	sem_wait(&ioMutex); // Acquire access to waiting
+	ioMutex.lock(); // Acquire access to waiting
 	cout << "This is Barber No." << *pID << endl;
-	sem_post(&ioMutex); // Release waiting
+	ioMutex.unlock(); // Release waiting
 
 	while(1)
 	{
         /*
-        //sem_wait(&cusMutex);
+        //cusMutex.lock();
 		if(totalServedCustomers >= realNum_customer){
-            //sem_post(&cusMutex);
+            //cusMutex.unlock();
 			break;
 		}
 
 		if(totalServedCustomers >= cus_perTime[currentTime] && totalServedCustomers < realNum_customer){
-			//sem_post(&cusMutex);
+			//cusMutex.unlock();
 			cout<<"Wait"<<endl;
 			continue;
 		}
-        //sem_post(&cusMutex);
+        //cusMutex.unlock();
         */
 
-		sem_wait(&barMutex);
-        sem_wait(&cusMutex);
+		barMutex.lock();
+        cusMutex.lock();
 		if(totalServedCustomers < realNum_customer){
-            sem_post(&cusMutex);
-			sem_wait(&customers); // Try to acquire a customer.
+            cusMutex.unlock();
+			customers.wait(); // Try to acquire a customer.
 			//Go to sleep if no customers
-			sem_wait(&Mutex); // Acquire access to waiting
+			Mutex.lock(); // Acquire access to waiting
 			//When a barber is waken -> wants to modify # of available chairs
-			sem_post(&barbers);  // The barber is now ready to cut hair
+			barbers.signal();  // The barber is now ready to cut hair
 
 			int nowCut = nextCut;
 			nextCut = (nextCut+1) % NUM_CHAIRS;
 			availableChairs++;
 
-			sem_post(&Mutex); // Release waiting
+			Mutex.unlock(); // Release waiting
 			cutHair(*pID, waitingChairs[nowCut]); //pick the customer which counter point
 		}
 		else{
-			sem_post(&barMutex);
-			sem_post(&cusMutex);
+			barMutex.unlock();
+			cusMutex.unlock();
 			break;
 		}
 	}
@@ -204,38 +201,38 @@ void waitForHairCut(struct customerData *a)
 void *customerThread(void* arg)
 {
     struct customerData *data = (struct customerData*)arg;
-    sem_wait(&Mutex); // Acquire access to waiting
+    Mutex.lock(); // Acquire access to waiting
     if( availableChairs == 0 )
     {
-        sem_wait(&ioMutex); // Acquire access to waiting
+        ioMutex.lock(); // Acquire access to waiting
         cout << "There is no available chair. Customer No." << data->cusID << " is leaving!" << endl;
-        sem_post(&ioMutex); // Release waiting
+        ioMutex.unlock(); // Release waiting
 
-        sem_wait(&cusMutex);
+        cusMutex.lock();
         --realNum_customer;
         //--cus_perTime[currentTime];
-        sem_post(&cusMutex);
+        cusMutex.unlock();
 
-        sem_post(&Mutex);
+        Mutex.unlock();
         pthread_exit(0);
     }
-    sem_wait(&ioMutex); // Acquire access to waiting
+    ioMutex.lock(); // Acquire access to waiting
     cout << "Customer No." << data->cusID << " is sitting on chair " << nextSit << "." << endl;
-    sem_post(&ioMutex); // Release waiting
+    ioMutex.unlock(); // Release waiting
 
     waitingChairs[nextSit].data = data;
     nextSit = (nextSit+1) % NUM_CHAIRS;
     availableChairs--;
     showWhoSitOnChair();
 
-    sem_post(&customers); // Wake up a barber (if needed)
-    sem_post(&Mutex); // Release waiting
-    sem_wait(&barbers); // Go to sleep if number of available barbers is 0
+    customers.signal(); // Wake up a barber (if needed)
+    Mutex.unlock(); // Release waiting
+    barbers.wait(); // Go to sleep if number of available barbers is 0
     waitForHairCut(data);
 
-    sem_wait(&ioMutex); // Acquire access to waiting
+    ioMutex.lock(); // Acquire access to waiting
     cout << "(C)Customer No." << data->cusID <<" just finished his haircut!"<<endl;
-    sem_post(&ioMutex); // Release waiting
+    ioMutex.unlock(); // Release waiting
 
 }
 
@@ -260,19 +257,19 @@ int *possionDistribution(float mean, int range, int num_period)
 	realNum_customer = 0;
 	for(int i=0; i<range; i++)
 	{
-		sem_wait(&cusMutex);
+		cusMutex.lock();
 
-		sem_wait(&ioMutex);
+		ioMutex.lock();
 		cout << i << " : " << frequenceArray[i] <<endl;
-		sem_post(&ioMutex);
+		ioMutex.unlock();
 
 		realNum_customer += frequenceArray[i];
 		//cus_perTime[i] = realNum_customer;
-		sem_post(&cusMutex);
+		cusMutex.unlock();
 	}
-	sem_wait(&ioMutex);
+	ioMutex.lock();
 	cout << "Sum : " << realNum_customer << endl << endl;
-	sem_post(&ioMutex);
+	ioMutex.unlock();
 
 	return frequenceArray;
 }
@@ -281,25 +278,27 @@ void createCustomers(int timeRange,int num_customer,float mean,int* cusArray)
 {
 	//pthread_t cus[num_customer];
 	thread cus[num_customer];
+
 	int cusTH = 0;      //this is n-th customer. (0 represent the first customer)
 	struct customerData cusData[num_customer];
 
 	for(currentTime=0; currentTime<timeRange; currentTime++)
 	{
-		sem_wait(&ioMutex);
+		ioMutex.lock();
 		cout<<"*****TIME:"<<currentTime<<endl;
-		sem_post(&ioMutex); // Release waiting
+		ioMutex.unlock(); // Release waiting
 		for(int j=0; j<cusArray[currentTime]; j++)
 		{
 			cusData[cusTH].cusID = nextID;
 			cusData[cusTH].hasFinishedCutting = false;
 
-			sem_wait(&ioMutex);
+			ioMutex.lock();
 			cout <<endl<< "Create Customer No."<< cusData[cusTH].cusID <<".\t(now Time :"<< currentTime << ")"<<endl;
-			sem_post(&ioMutex); // Release waiting
+			ioMutex.unlock(); // Release waiting
 
 			//pthread_create(&cus[cusTH], NULL, &customerThread, (void*)&cusData[cusTH]);
             cus[cusTH] = thread(&customerThread, (void*)&cusData[cusTH]);
+
 			cusTH ++;
 			nextID ++;
 			usleep(10);     // avoid create earlier but execute thread laterly
@@ -358,14 +357,14 @@ int main()
 
 	}
 	cout<<"////pthread_bar_exit"<<endl;
-
+/*
     sem_destroy(&barbers);
     sem_destroy(&customers);
     sem_destroy(&Mutex);
     sem_destroy(&ioMutex);
     sem_destroy(&cusMutex);
     sem_destroy(&barMutex);
-
+*/
 	cout<<endl<<"All customers finish their haircuts!"<<endl;
 	return 0;
 }
