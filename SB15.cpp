@@ -277,7 +277,7 @@ int *possionDistribution(float mean, int range, int num_period)
 void createCustomers(int timeRange,int num_customer,float mean,int* cusArray)
 {
 	//pthread_t cus[num_customer];
-	thread cus[num_customer];
+	thread cus[NUM_CUSTOMER];
 
 	int cusTH = 0;      //this is n-th customer. (0 represent the first customer)
 	struct customerData cusData[num_customer];
@@ -309,8 +309,11 @@ void createCustomers(int timeRange,int num_customer,float mean,int* cusArray)
 	for(int i=0; i<num_customer; i++)
 	{
 		//pthread_join(cus[i], NULL);
-		cus[i].join();
+		//cus[i].join();
 		//cout<<"////pthread_cus"<<endl;
+        if (cus[i].get_id() != thread::id()) {
+            cus[i].join();
+        }
 	}
 
 	//	cout<<"////pthread_cus_exit"<<endl;
@@ -353,10 +356,14 @@ int main()
 	{
 		cout<<"////pthread_bar"<<i<<endl;
 		//pthread_join(bar[i], NULL);
-		bar[i].join();
+		//bar[i].join();
+        if (bar[i].get_id() != thread::id()) {
+            bar[i].join();
+        }
 
 	}
 	cout<<"////pthread_bar_exit"<<endl;
+	
 /*
     sem_destroy(&barbers);
     sem_destroy(&customers);
