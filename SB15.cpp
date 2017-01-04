@@ -223,11 +223,13 @@ int *possionDistribution(float mean, int range, int num_period)
 	for(int i=0; i<range; i++)
 		frequenceArray[i] = 0;
 
-	for(int i=0; i<NUM_TIMES; i++)
+	for(int i=0; i<NUM_TIMES; )
 	{
 		int number = distribution(generator);
-		if(number < range)
+		if(number < range){
 			frequenceArray[number]++;
+			i++;
+		}
 	}
 
 	realNum_customer = 0;
