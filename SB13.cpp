@@ -206,11 +206,11 @@ void cutHair(int barberID, Chair wChair)
 	print();
 	dispatch_semaphore_signal(ioMutex); // Release waiting
 
-	dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER); // Acquire access to waiting
-	cout<<"total:"<<totalServedCustomers<<"/"<<realNum_customer<<endl;
-	dispatch_semaphore_signal(ioMutex); // Release waiting
+	//dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER); // Acquire access to waiting
+	//cout<<"total:"<<totalServedCustomers<<"/"<<realNum_customer<<endl;
+	//dispatch_semaphore_signal(ioMutex); // Release waiting
 
-	for(long long i=0; i<2*NSEC_PER_SEC; i++); //Cut hair time
+	for(long long i=0; i<1*NSEC_PER_SEC; i++); //Cut hair time
 	isBusy[barberID-1] = false;
 
 	//dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER); // Acquire access to waiting
@@ -282,10 +282,10 @@ void *customerThread(void* arg)
 
 	if( availableChairs == 0 )
 	{
-		//dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER); // Acquire access to waiting
-		//cout << "There is no available chair. Customer No." << data->cusID << " is leaving!" << endl;
+		dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER); // Acquire access to waiting
+		cout << "There is no available chair. Customer No." << data->cusID << " is leaving!" << endl;
 		comeCus[data->cusID-1] = false;
-		//dispatch_semaphore_signal(ioMutex); // Release waiting
+		dispatch_semaphore_signal(ioMutex); // Release waiting
 
 		dispatch_semaphore_wait(cusMutex, DISPATCH_TIME_FOREVER);
 		--realNum_customer;
@@ -454,6 +454,7 @@ int main()
 	dispatch_release(cusMutex);
 	dispatch_release(barMutex);
 	print();
+	cout<<"\nTotal Served: "<<totalServedCustomers<<endl;
 
 	cout<<endl<<"All customers finish their haircuts!"<<endl;
 	return 0;

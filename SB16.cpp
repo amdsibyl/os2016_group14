@@ -114,9 +114,9 @@ int cus_perTime[TIME_RANGE];
 int currentTime = 0;
 
 /*For poisson distribution*/
-float mean;
-int timeRange; //1 period will have how many time unit
-int num_customer; //number (for poisson distribution) to create customers
+float mean = MEAN;
+int timeRange = TIME_RANGE; //1 period will have how many time unit
+int num_customer = NUM_CUSTOMER; //number (for poisson distribution) to create customers
 int realNum_customer = 0;
 
 
@@ -535,6 +535,16 @@ void keys(unsigned char key, int x, int y)
 
 			break;
 
+		case 'i':
+			cout<<"Enter mean number (for poisson distribution):";
+			cin>>mean;
+			cout<<"Enter the time range (sec) that you want to test:";
+			cin>>timeRange;
+			cout<<"Enter number (for poisson distribution) to create customers:";
+			cin>>num_customer;
+
+			break;
+
 	} //switch(key)
 
 	glutPostRedisplay();
@@ -594,14 +604,6 @@ int main( int argc, char** argv )
 	chairPic.setChromaKey(255, 255, 255);
 	for (int i=0; i<20; i++)
 		cusPic[i].setChromaKey(255, 255, 255);
-
-
-	cout<<"Enter mean number (for poisson distribution):";
-	cin>>mean;
-	cout<<"Enter the time range (sec) that you want to test:";
-	cin>>timeRange;
-	cout<<"Enter number (for poisson distribution) to create customers:";
-	cin>>num_customer;
 
 
 	glutMainLoop();
