@@ -281,11 +281,13 @@ int *possionDistribution(float mean, int range, int num_period)
 		frequenceArray[i] = 0;
 
 
-	for(int i=0; i<NUM_TIMES; i++)
+	for(int i=0; i<NUM_TIMES; )
 	{
 		int number = distribution(generator);
-		if(number < range)
+		if(number < range){
 			frequenceArray[number]++;
+			i++;
+		}
 	}
 
 	realNum_customer = 0;
@@ -373,9 +375,12 @@ void createCustomers(int timeRange,int num_customer,float mean,int* cusArray, th
 }
 
 void runMain(){
+
+	/*
 	mean = MEAN;
 	timeRange = TIME_RANGE;
 	num_customer = NUM_CUSTOMER;
+	*/
 
 	/* initial */
 	for(int i=0;i<NUM_BARBERS;i++){
@@ -589,6 +594,14 @@ int main( int argc, char** argv )
 	chairPic.setChromaKey(255, 255, 255);
 	for (int i=0; i<20; i++)
 		cusPic[i].setChromaKey(255, 255, 255);
+
+
+	cout<<"Enter mean number (for poisson distribution):";
+	cin>>mean;
+	cout<<"Enter the time range (sec) that you want to test:";
+	cin>>timeRange;
+	cout<<"Enter number (for poisson distribution) to create customers:";
+	cin>>num_customer;
 
 
 	glutMainLoop();
