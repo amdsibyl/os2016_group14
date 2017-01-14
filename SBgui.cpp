@@ -182,32 +182,32 @@ void *barberThread(void* arg)
 	{
 		barMutex.lock();
 		cusMutex.lock();
-		if(totalServedCustomers < realNum_customer){
-			cusMutex.unlock();
-			customers.wait(); // Try to acquire a customer.
-			//Go to sleep if no customers
-			Mutex.lock(); // Acquire access to waiting
-			//When a barber is waken -> wants to modify # of available chairs
-			barbers.signal();  // The barber is now ready to cut hair
-
-			int nowCut = nextCut;
-			nextCut = (nextCut+1) % NUM_CHAIRS;
-			availableChairs++;
-
-			Mutex.unlock(); // Release waiting
-
-			/* GUI change barber's mode */
-			isBusy[*pID-1] = true;
-			cutting[*pID-1] = waitingChairs[nowCut].data->cusID;
-			isSit[waitingChairs[nowCut].seqNumber] = false;
-			glutPostRedisplay(); //////////////GUI
-
-			cutHair(*pID, waitingChairs[nowCut]); //pick the customer which counter point
-
-			isBusy[*pID-1] = false;
-			//this_thread::sleep_for( chrono::milliseconds( 1000 ));
-			glutPostRedisplay(); //////////////GUI
-		}
+        if(totalServedCustomers < realNum_customer){
+            cusMutex.unlock();
+            customers.wait(); // Try to acquire a customer.
+            //Go to sleep if no customers
+            Mutex.lock(); // Acquire access to waiting
+            //When a barber is waken -> wants to modify # of available chairs
+            barbers.signal();  // The barber is now ready to cut hair
+            
+            int nowCut = nextCut;
+            nextCut = (nextCut+1) % NUM_CHAIRS;
+            
+            Mutex.unlock(); // Release waiting
+            
+            /* GUI change barber's mode */
+            isBusy[*pID-1] = true;
+            cutting[*pID-1] = waitingChairs[nowCut].data->cusID;
+            isSit[waitingChairs[nowCut].seqNumber] = false;
+            glutPostRedisplay(); //////////////GUI
+            availableChairs++;
+            
+            cutHair(*pID, waitingChairs[nowCut]); //pick the customer which counter point
+            
+            isBusy[*pID-1] = false;
+            //this_thread::sleep_for( chrono::milliseconds( 1000 ));
+            glutPostRedisplay(); //////////////GUI
+        }
 		else{
 			barMutex.unlock();
 			cusMutex.unlock();
@@ -239,7 +239,7 @@ void *customerThread(void* arg)
 		cusMutex.unlock();
 
 		Mutex.unlock();
-		//pthread_exit(0);
+		pthread_exit(0);
 	}
 	ioMutex.lock(); // Acquire access to waiting
 	cout << "Customer No." << data->cusID << " is sitting on chair " << nextSit << "." << endl;
