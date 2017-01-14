@@ -137,6 +137,7 @@ void print(){
 
 	cout<<"|                                            |\n";
 	cout<<"----------------------------------------------\n";
+	usleep(50000);
 }
 
 struct customerData
@@ -388,6 +389,9 @@ void createCustomers(int timeRange,int num_customer,float mean,int* cusArray)
 			nextID ++;
 			usleep(10);     // avoid create earlier but execute thread laterly
 		}
+		dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER); // Acquire access to waiting
+		print();
+		dispatch_semaphore_signal(ioMutex); // Release waiting
 		usleep(1000000);    // next time unit
 	}
 

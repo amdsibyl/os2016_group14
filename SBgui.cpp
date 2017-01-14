@@ -20,7 +20,7 @@
 #include <condition_variable>
 #include <dispatch/dispatch.h>
 
-#define NUM_BARBERS 4
+#define NUM_BARBERS 3
 #define NUM_CHAIRS 5
 
 #define MEAN 5
@@ -162,7 +162,7 @@ void cutHair(int barberID, Chair wChair)
 
 	waitingChairs[wChair.seqNumber].data = nullptr;
 
-	for(long long i=0; i<0.5*NSEC_PER_SEC; i++); //Cut hair time
+	for(long long i=0; i<2*NSEC_PER_SEC; i++); //Cut hair time
 
 	ioMutex.lock(); // Acquire access to waiting
 	cout << "(B)Barber " << barberID <<" just finished cutting Customer No." << wChair.data->cusID << "'s hair !" <<endl<<endl;;

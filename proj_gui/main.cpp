@@ -1,27 +1,31 @@
 #include "mainwindow.h"
 #include <QApplication>
 
-#include <fcntl.h>
 #include <iostream>
-#include <dispatch/dispatch.h>
 #include <semaphore.h>
-#include <pthread.h>
+//#include <pthread.h>
 #include <unistd.h>
 #include <cstdlib>
 #include <random>
-#include <iomanip>
+#include <thread>
+//#include <semaphore.h>
+#include <mutex>
+#include <condition_variable>
+#include <dispatch/dispatch.h>
 
-#define NUM_BARBERS 3
+#define NUM_BARBERS 4
 #define NUM_CHAIRS 5
 
-#define MEAN 3
+#define MEAN 5
 #define TIME_RANGE 10
-#define NUM_CUSTOMER 3
+#define NUM_CUSTOMER 15
 
 using namespace std;
 
-MainWindow *gui;
-QApplication *app;
+
+QApplication* app;
+MainWindow* gui;
+
 
 /*
  * The barber shop has m barbers with m barber chairs,
@@ -34,115 +38,49 @@ QApplication *app;
  * without getting into race conditions.
  */
 
-/*Shared data*/
-dispatch_semaphore_t barbers = dispatch_semaphore_create(NUM_BARBERS);      /*Number of barbers waiting for customers*/
-dispatch_semaphore_t customers = dispatch_semaphore_create(0);    /*Number of customers waiting for service*/
-dispatch_semaphore_t Mutex = dispatch_semaphore_create(1);        /*Mutex used for mutual exclusion*/
-dispatch_semaphore_t ioMutex = dispatch_semaphore_create(1);      /*Mutex used for input and output*/
-dispatch_semaphore_t cusMutex = dispatch_semaphore_create(1);     /*Mutex used for change totalServedCustomers*/
-dispatch_semaphore_t barMutex = dispatch_semaphore_create(1);     /*Mutex used for one check per time*/
 
-int cutting[NUM_BARBERS];
+/* initial for GUI */
 bool isBusy[NUM_BARBERS];
-int seat[NUM_CHAIRS];
+int cutting[NUM_BARBERS];
 bool isSit[NUM_CHAIRS];
+int seat[NUM_CHAIRS];
 int comeCus[NUM_CUSTOMER];
 
-void print(){
-    cout<<"\n@@0 busy: "<<isBusy[0]<<endl;
-    cout<<"\n@@1 busy: "<<isBusy[1]<<endl;
-    cout<<"\n@@2 busy: "<<isBusy[2]<<endl;
-    cout<<"----------------------------------------------\n";
-    cout<<"|                                            |\n";
-    cout<<"| Barber                                     |\n";
+//Set windows
+int screenWidth = 800 , screenHeight = 600;
 
-    cout<<"|  ";
-    for(int i=0;i<NUM_BARBERS;i++)
-        cout<<" "<<setfill('0')<<setw(2)<<i+1<<"   ";
-    for(int i=0;i<7-NUM_BARBERS;i++)
-        cout<<"      ";
-    cout<<"|\n";	//"01"
 
-    cout<<"|  ";
-    for(int i=0;i<NUM_BARBERS;i++)
-        cout<<"----  ";
-    for(int i=0;i<7-NUM_BARBERS;i++)
-        cout<<"      ";
-    cout<<"|\n";	//cout<<"|  ----  ----  ----  ----  ----  ----  ----  |\n";
+class Semaphore {
+    public:
+        Semaphore(int value=1): count{value}, wakeups{0} {}
 
-    cout<<"|  ";
-    for(int i=0;i<NUM_BARBERS;i++){
-        if(isBusy[i]&&cutting[i]!=-1){
-            cout<<"|"<<setfill('0')<<setw(2)<<cutting[i]<<"|  ";
+        void wait(){
+            std::unique_lock<std::mutex> lock{mutex};
+            if (--count<0) { // count is not enough ?
+                condition.wait(lock, [&]()->bool{ return wakeups>0;}); // suspend and wait ...
+                --wakeups;  // ok, me wakeup !
+            }
         }
-        else
-            cout<<"|--|  ";
-    }
-    for(int i=0;i<7-NUM_BARBERS;i++)
-        cout<<"      ";
-    cout<<"|\n";	//"| 1|  "
-
-    cout<<"|  ";
-    for(int i=0;i<NUM_BARBERS;i++)
-        cout<<"----  ";
-    for(int i=0;i<7-NUM_BARBERS;i++)
-        cout<<"      ";
-    cout<<"|\n";	//cout<<"|  ----  ----  ----  ----  ----  ----  ----  |\n";
-
-    cout<<"|                                            |\n";
-    cout<<"|                                            |\n";
-    cout<<"|                                            |\n";
-    cout<<"|                                            |\n";
-    cout<<"|                                            |\n";
-    cout<<"|                                            |\n";
-    cout<<"|                                            |\n";
-    cout<<"|                                            |\n";
-    cout<<"|                                            |\n";
-    cout<<"|                                            |\n";
-    cout<<"|                                            |\n";
-    cout<<"|                                            |\n";
-    cout<<"|                                            |\n";
-    cout<<"|                                            |\n";
-    cout<<"|                                            |\n";
-    cout<<"|                                            |\n";
-    cout<<"|                                            |\n";
-    cout<<"|  Chair                                    / \n";
-
-    cout<<"|  ";
-    for(int i=0;i<NUM_CHAIRS;i++)
-        cout<<"----  ";
-    for(int i=0;i<6-NUM_CHAIRS;i++)
-        cout<<"      ";
-    cout<<"    /  \n";	//cout<<"|  ----  ----  ----  ----  ----  ----  ----  |\n";
-
-    cout<<"|  ";
-    for(int i=0;i<NUM_CHAIRS;i++){
-        if(isSit[i] && seat[i]!=-1){
-            cout<<"|"<<setfill('0')<<setw(2)<<seat[i]<<"|  ";
+        void signal(){
+            std::lock_guard<std::mutex> lock{mutex};
+            if(++count<=0) { // have some thread suspended ?
+                ++wakeups;
+                condition.notify_one(); // notify one !
+            }
         }
-        else
-            cout<<"|--|  ";
-    }
-    for(int i=0;i<6-NUM_CHAIRS;i++)
-        cout<<"      ";
-    cout<<"   / ";
-    // coming customers
-    for(int i=0;i<NUM_CUSTOMER;i++){
-        if(comeCus[i]==true)
-            cout<<i+1<<" ";
-    }
-    cout<<"\n";	//cout<<"|                                         /   \n";
 
-    cout<<"|  ";
-    for(int i=0;i<NUM_CHAIRS;i++)
-        cout<<"----  ";
-    for(int i=0;i<6-NUM_CHAIRS;i++)
-        cout<<"      ";
-    cout<<"  /    \n";	//cout<<"|  ----  ----  ----  ----  ----  ----  ----  |\n";
+    private:
+        int count;
+        int wakeups;
+        std::mutex mutex;
+        std::condition_variable condition;
+};
 
-    cout<<"|                                            |\n";
-    cout<<"----------------------------------------------\n";
-}
+
+Semaphore barbers(NUM_BARBERS);
+Semaphore customers(0);
+mutex Mutex,ioMutex,cusMutex,barMutex;
+
 
 struct customerData
 {
@@ -171,14 +109,19 @@ int cus_perTime[TIME_RANGE];
 int currentTime = 0;
 
 /*For poisson distribution*/
-float mean;
-int timeRange; //1 period will have how many time unit
-int num_customer; //number (for poisson distribution) to create customers
+float mean = MEAN;
+int timeRange = TIME_RANGE; //1 period will have how many time unit
+int num_customer = NUM_CUSTOMER; //number (for poisson distribution) to create customers
 int realNum_customer = 0;
+
+
+thread mainThread;
+
+
 
 void showWhoSitOnChair()
 {
-    dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER); // Acquire access to waiting
+    ioMutex.lock(); // Acquire access to waiting
     cout<<"Waiting Chairs:";
     for(int i=0; i<NUM_CHAIRS; i++)
     {
@@ -192,46 +135,33 @@ void showWhoSitOnChair()
         }
     }
     cout << endl;
-    print();
-    dispatch_semaphore_signal(ioMutex); // Release waiting
+
+    ioMutex.unlock(); // Release waiting
 }
 
 void cutHair(int barberID, Chair wChair)
 {
-    isBusy[barberID-1] = true;
-
-    gui->changeBarberMode(barberID,true);
-    //app->processEvents();
-    MainWindow::connect(gui,SIGNAL(MainWindow::changeBarberMode(int,bool)),app,SLOT(QApplication::processEvents()));
-
-    dispatch_semaphore_wait(cusMutex, DISPATCH_TIME_FOREVER);
+    cusMutex.lock();
     ++totalServedCustomers;
-    dispatch_semaphore_signal(barMutex);
+    barMutex.unlock();
 
-    dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER); // Acquire access to waiting
+    ioMutex.lock(); // Acquire access to waiting
     cout<<"total:"<<totalServedCustomers<<"/"<<realNum_customer<<endl;
-    dispatch_semaphore_signal(ioMutex); // Release waiting
+    ioMutex.unlock(); // Release waiting
 
-    dispatch_semaphore_signal(cusMutex);
+    cusMutex.unlock();
 
-    dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER); // Acquire access to waiting
+    ioMutex.lock(); // Acquire access to waiting
     cout << "(B) Barber " << barberID <<" is cutting Customer No." << wChair.data->cusID << "'s hair !"<<endl;
-    //cout << "(At chair No." << wChair.seqNumber << ")" << endl;
-    cutting[barberID-1] = wChair.data->cusID;
-    print();
-    dispatch_semaphore_signal(ioMutex); // Release waiting
+    ioMutex.unlock(); // Release waiting
 
     waitingChairs[wChair.seqNumber].data = nullptr;
-    isSit[wChair.seqNumber] = false;
 
-    for(long long i=0; i<200000000; i++); //Cut hair time
-    isBusy[barberID-1] = false;
-    gui->changeBarberMode(barberID,false);
-    app->processEvents();
+    for(long long i=0; i<0.5*NSEC_PER_SEC; i++); //Cut hair time
 
-    dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER); // Acquire access to waiting
+    ioMutex.lock(); // Acquire access to waiting
     cout << "(B)Barber " << barberID <<" just finished cutting Customer No." << wChair.data->cusID << "'s hair !" <<endl<<endl;;
-    dispatch_semaphore_signal(ioMutex); // Release waiting
+    ioMutex.unlock(); // Release waiting
 
     wChair.data->hasFinishedCutting = true;
 }
@@ -239,79 +169,50 @@ void cutHair(int barberID, Chair wChair)
 void *barberThread(void* arg)
 {
     int *pID = (int*)arg;
-    dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER); // Acquire access to waiting
+    ioMutex.lock(); // Acquire access to waiting
     cout << "This is Barber No." << *pID << endl;
-    dispatch_semaphore_signal(ioMutex); // Release waiting
+    ioMutex.unlock(); // Release waiting
 
     while(1)
     {
-        dispatch_semaphore_wait(cusMutex, DISPATCH_TIME_FOREVER);
-        //		dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER);
-        //		cout<<"\n----- "<<totalServedCustomers<<" / "<<cus_perTime[currentTime]<<" -----\n";
-        //		dispatch_semaphore_signal(ioMutex);
-        if(totalServedCustomers >= realNum_customer){
-            dispatch_semaphore_signal(cusMutex);
-            //			dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER);
-            //			cout<<"\n@@ Barber "<<*pID<<" e04!!\n\n";
-            //			dispatch_semaphore_signal(ioMutex);
-            break;
-        }
-        /*
-         if(totalServedCustomers >= cus_perTime[currentTime] && totalServedCustomers != realNum_customer){
-         dispatch_semaphore_signal(cusMutex);
-         continue;
-         }
-         */
-        dispatch_semaphore_signal(cusMutex);
-
-        dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER);
-        cout<<"\nBarber "<<*pID<<" is free!!\n\n";
-        dispatch_semaphore_signal(ioMutex);
-
-    dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER); // Acquire access to waiting
-    print();
-    dispatch_semaphore_signal(ioMutex); // Release waiting
-
-        dispatch_semaphore_wait(barMutex,DISPATCH_TIME_FOREVER);
-        //				dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER);
-        //				cout<<"\n----- "<<totalServedCustomers<<" / "<<cus_perTime[currentTime]<<" -----\n";
-        //				dispatch_semaphore_signal(ioMutex);
+        barMutex.lock();
+        cusMutex.lock();
         if(totalServedCustomers < realNum_customer){
-            //			dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER);
-            //			cout<<"\n@1 Barber "<<*pID<<" cus\n\n";
-            //			dispatch_semaphore_signal(ioMutex);
-            dispatch_semaphore_wait(customers, DISPATCH_TIME_FOREVER); // Try to acquire a customer.
-
+            cusMutex.unlock();
+            customers.wait(); // Try to acquire a customer.
             //Go to sleep if no customers
-            //			dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER);
-            //			cout<<"\n@2 Barber "<<*pID<<" mtx\n\n";
-            //			dispatch_semaphore_signal(ioMutex);
-            dispatch_semaphore_wait(Mutex, DISPATCH_TIME_FOREVER); // Acquire access to waiting
-
+            Mutex.lock(); // Acquire access to waiting
             //When a barber is waken -> wants to modify # of available chairs
-            //			dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER);
-            //			cout<<"\n@2 Barber "<<*pID<<" barbers\n\n";
-            //			dispatch_semaphore_signal(ioMutex);
-            dispatch_semaphore_signal(barbers);  // The barber is now ready to cut hair
-
+            barbers.signal();  // The barber is now ready to cut hair
 
             int nowCut = nextCut;
             nextCut = (nextCut+1) % NUM_CHAIRS;
             availableChairs++;
 
-            dispatch_semaphore_signal(Mutex); // Release waiting
+            Mutex.unlock(); // Release waiting
+
+            /* GUI change barber's mode */
+            isBusy[*pID-1] = true;
+            cutting[*pID-1] = waitingChairs[nowCut].data->cusID;
+            isSit[waitingChairs[nowCut].seqNumber] = false;
+            gui->changeBarberMode(*pID-1,isBusy[*pID-1]);
+
             cutHair(*pID, waitingChairs[nowCut]); //pick the customer which counter point
+
+            isBusy[*pID-1] = false;
+            gui->changeBarberMode(*pID-1,isBusy[*pID-1]);
+
+            //this_thread::sleep_for( chrono::milliseconds( 1000 ));
+
         }
         else{
-            dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER);
-            cout<<"\n@2 Barber "<<*pID<<" arrrrr\n\n";
-            dispatch_semaphore_signal(ioMutex);
-            dispatch_semaphore_signal(barMutex);
+            barMutex.unlock();
+            cusMutex.unlock();
+            break;
         }
     }
-    pthread_exit(0);
-}
 
+}
 
 void waitForHairCut(struct customerData *a)
 {
@@ -321,107 +222,127 @@ void waitForHairCut(struct customerData *a)
 void *customerThread(void* arg)
 {
     struct customerData *data = (struct customerData*)arg;
-    dispatch_semaphore_wait(Mutex, DISPATCH_TIME_FOREVER); // Acquire access to waiting
-
+    Mutex.lock(); // Acquire access to waiting
     if( availableChairs == 0 )
     {
-        dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER); // Acquire access to waiting
+        ioMutex.lock(); // Acquire access to waiting
         cout << "There is no available chair. Customer No." << data->cusID << " is leaving!" << endl;
         comeCus[data->cusID-1] = false;
-        dispatch_semaphore_signal(ioMutex); // Release waiting
 
-        dispatch_semaphore_wait(cusMutex, DISPATCH_TIME_FOREVER);
+        ioMutex.unlock(); // Release waiting
+
+        cusMutex.lock();
         --realNum_customer;
-        --cus_perTime[currentTime];
-        dispatch_semaphore_signal(cusMutex);
+        cusMutex.unlock();
 
-        dispatch_semaphore_signal(Mutex);
-        pthread_exit(0);
+        Mutex.unlock();
+        //pthread_exit(0);
     }
-    dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER); // Acquire access to waiting
+    ioMutex.lock(); // Acquire access to waiting
     cout << "Customer No." << data->cusID << " is sitting on chair " << nextSit << "." << endl;
     comeCus[data->cusID-1] = false;
     seat[nextSit] = data->cusID;
-    dispatch_semaphore_signal(ioMutex); // Release waiting
+
+    ioMutex.unlock(); // Release waiting
 
     waitingChairs[nextSit].data = data;
     nextSit = (nextSit+1) % NUM_CHAIRS;
     availableChairs--;
     showWhoSitOnChair();
 
-    dispatch_semaphore_signal(customers); // Wake up a barber (if needed)
-    dispatch_semaphore_signal(Mutex); // Release waiting
-    dispatch_semaphore_wait(barbers, DISPATCH_TIME_FOREVER); // Go to sleep if number of available barbers is 0
+    //usleep(10000);
+
+
+    customers.signal(); // Wake up a barber (if needed)
+    Mutex.unlock(); // Release waiting
+    barbers.wait(); // Go to sleep if number of available barbers is 0
     waitForHairCut(data);
 
-    dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER); // Acquire access to waiting
+    ioMutex.lock(); // Acquire access to waiting
     cout << "(C)Customer No." << data->cusID <<" just finished his haircut!"<<endl;
-    dispatch_semaphore_signal(ioMutex); // Release waiting
-    pthread_exit(0);
+    ioMutex.unlock(); // Release waiting
+
 }
 
 int *possionDistribution(float mean, int range, int num_period)
 {
+
     const int NUM_TIMES = num_period;
     default_random_engine generator;
     poisson_distribution<int> distribution(mean);
+
 
     int *frequenceArray = new int[range];
 
     for(int i=0; i<range; i++)
         frequenceArray[i] = 0;
 
-    for(int i=0; i<NUM_TIMES; i++)
+
+    for(int i=0; i<NUM_TIMES; )
     {
         int number = distribution(generator);
-        if(number < range)
+        if(number < range){
             frequenceArray[number]++;
+            i++;
+        }
     }
 
     realNum_customer = 0;
-
     for(int i=0; i<range; i++)
     {
-        dispatch_semaphore_wait(cusMutex,DISPATCH_TIME_FOREVER);
+        cusMutex.lock();
 
-        dispatch_semaphore_wait(ioMutex,DISPATCH_TIME_FOREVER);
+        ioMutex.lock();
         cout << i << " : " << frequenceArray[i] <<endl;
-        dispatch_semaphore_signal(ioMutex);
+        ioMutex.unlock();
 
         realNum_customer += frequenceArray[i];
-        cus_perTime[i] = realNum_customer;
-        dispatch_semaphore_signal(cusMutex);
+        cusMutex.unlock();
     }
-    dispatch_semaphore_wait(ioMutex,DISPATCH_TIME_FOREVER);
+    ioMutex.lock();
     cout << "Sum : " << realNum_customer << endl << endl;
-    dispatch_semaphore_signal(ioMutex);
+    ioMutex.unlock();
+
 
     return frequenceArray;
 }
 
-void createCustomers(int timeRange,int num_customer,float mean,int* cusArray)
+
+
+
+void createCustomers(int timeRange,int num_customer,float mean,int* cusArray, thread cus[NUM_CUSTOMER],thread bar[NUM_BARBERS])
 {
-    pthread_t cus[num_customer];
+    int barberID[NUM_BARBERS];
+
+    for(int i=0; i<NUM_BARBERS; i++)
+    {
+        barberID[i] = i+1; // fill the barID
+        bar[i] = thread(&barberThread,(void*)&barberID[i]);
+    }
+
     int cusTH = 0;      //this is n-th customer. (0 represent the first customer)
     struct customerData cusData[num_customer];
 
     for(currentTime=0; currentTime<timeRange; currentTime++)
     {
-        dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER); // Acquire access to waiting
-        cout<<endl<<"*****TIME:"<<currentTime<<endl;
-        dispatch_semaphore_signal(ioMutex); // Release waiting
+        ioMutex.lock();
+        cout<<"*****TIME:"<<currentTime<<endl;
+        ioMutex.unlock(); // Release waiting
         for(int j=0; j<cusArray[currentTime]; j++)
         {
             cusData[cusTH].cusID = nextID;
             cusData[cusTH].hasFinishedCutting = false;
 
-            dispatch_semaphore_wait(ioMutex, DISPATCH_TIME_FOREVER); // Acquire access to waiting
+            ioMutex.lock();
             cout <<endl<< "Create Customer No."<< cusData[cusTH].cusID <<".\t(now Time :"<< currentTime << ")"<<endl;
             comeCus[cusData[cusTH].cusID-1] = true;
-            print();
-            dispatch_semaphore_signal(ioMutex); // Release waiting
 
-            pthread_create(&cus[cusTH], NULL, &customerThread, (void*)&cusData[cusTH]);
+
+            usleep(100000);    // next time unit
+
+            ioMutex.unlock(); // Release waiting
+
+            cus[cusTH] = thread(&customerThread, (void*)&cusData[cusTH]);
 
             cusTH ++;
             nextID ++;
@@ -430,15 +351,54 @@ void createCustomers(int timeRange,int num_customer,float mean,int* cusArray)
         usleep(1000000);    // next time unit
     }
 
+
     for(int i=0; i<num_customer; i++)
     {
-        pthread_join(cus[i], NULL);
-        //cout<<"////pthread_cus"<<endl;
+        if (cus[i].get_id() != thread::id()) {
+            cus[i].join();
+        }
     }
 
-    //	cout<<"////pthread_cus_exit"<<endl;
+    for(int i=0; i<NUM_BARBERS; i++)
+    {
+        if (bar[i].get_id() != thread::id()) {
+            bar[i].join();
+        }
+    }
+
+    cout<<endl<<"All customers finish their haircuts!"<<endl;
+
+
 }
 
+void runMain(){
+
+    /*
+    mean = MEAN;
+    timeRange = TIME_RANGE;
+    num_customer = NUM_CUSTOMER;
+    */
+
+    /* initial */
+    for(int i=0;i<NUM_BARBERS;i++){
+        cutting[i] = -1;
+        isBusy[i] = false;
+    }
+    for(int i=0;i<NUM_CUSTOMER;i++){
+        comeCus[i] = false;
+    }
+    for(int i=0; i<NUM_CHAIRS; i++)  // fill the number of tn of all waiting chair
+        waitingChairs[i].seqNumber = i;
+
+    int *cusArray = possionDistribution(mean, timeRange, num_customer); //Use p_s create
+
+
+    thread bar[NUM_BARBERS];
+    thread cus[NUM_CUSTOMER];
+    createCustomers(timeRange,num_customer,mean,cusArray,cus,bar);
+
+
+}
 
 int main(int argc, char *argv[])
 {
@@ -462,46 +422,7 @@ int main(int argc, char *argv[])
     timeRange = TIME_RANGE;
     num_customer = NUM_CUSTOMER;
 
-    for(int i=0;i<NUM_BARBERS;i++){
-        cutting[i] = -1;
-        isBusy[i] = false;
-    }
-    for(int i=0;i<NUM_CUSTOMER;i++){
-        comeCus[i] = false;
-    }
-
-
-    for(int i=0; i<NUM_CHAIRS; i++)  // fill the number of tn of all waiting chair
-        waitingChairs[i].seqNumber = i;
-
-    pthread_t bar[NUM_BARBERS];
-    int barberID[NUM_BARBERS];
-
-    int *cusArray = possionDistribution(mean, timeRange, num_customer); //Use p_s create
-
-    for(int i=0; i<NUM_BARBERS; i++)
-    {
-        barberID[i] = i+1; // fill the barID
-        pthread_create(&bar[i], NULL, &barberThread, (void*)&barberID[i]);  // create all barber thread
-    }
-    createCustomers(timeRange,num_customer,mean,cusArray);
-
-    for(int i=0; i<NUM_BARBERS; i++)
-    {
-        cout<<"////pthread_bar"<<i<<endl;
-        pthread_join(bar[i], NULL);
-    }
-    cout<<"////pthread_bar_exit"<<endl;
-
-    dispatch_release(customers);
-    dispatch_release(barbers);
-    dispatch_release(Mutex);
-    dispatch_release(ioMutex);
-    dispatch_release(cusMutex);
-    dispatch_release(barMutex);
-    print();
-
-    cout<<endl<<"All customers finish their haircuts!"<<endl;
+    mainThread = thread(runMain);
 
     return a.exec();
 }
